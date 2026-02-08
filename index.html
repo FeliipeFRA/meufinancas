@@ -1,86 +1,49 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Carpool - Teste</title>
-    <link rel="stylesheet" href="./css/app.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carpool</title>
+  <link rel="stylesheet" href="./css/app.css" />
 </head>
-
 <body>
-    <main class="container">
-        <header class="header">
-            <h1>Carpool</h1>
-            <p class="muted">Teste rápido do backend (config + lançamento do dia).</p>
-        </header>
+  <header class="topbar">
+    <div class="topbarInner">
+      <div class="brand">
+        <img class="brandLogo" src="./assets/logo.png" alt="Logo" />
+        <div class="brandText">
+          <div class="brandTitle">Carpool</div>
+          <div class="brandSub">Semana atual</div>
+        </div>
+      </div>
+    </div>
+  </header>
 
-        <section class="card">
-            <h2>Conexão</h2>
+  <main class="container">
+    <section class="card">
+      <div class="cardHeader">
+        <h2>Semana atual (Seg–Sex)</h2>
+        <button id="btnRefresh" class="btn">Atualizar</button>
+      </div>
 
-            <label class="label">API Base URL (Lambda URL)</label>
-            <input id="apiUrl" class="input" placeholder="https://xxxx.lambda-url.sa-east-1.on.aws" />
+      <div id="weekWrap" class="weekWrap">
+        <div class="muted">Carregando...</div>
+      </div>
 
-            <label class="label">Access Key</label>
-            <input id="accessKey" class="input" placeholder="sua chave" />
+      <pre id="status" class="pre muted"></pre>
+    </section>
+  </main>
 
-            <div class="row">
-                <button id="btnSaveConn" class="btn">Salvar conexão</button>
-                <button id="btnLoadConfig" class="btn primary">Carregar config</button>
-            </div>
+  <!-- Modal (popup) -->
+  <div id="modalBackdrop" class="modalBackdrop hidden"></div>
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modalHeader">
+      <div id="modalTitle" class="modalTitle">Detalhes</div>
+      <button id="modalClose" class="btn">Fechar</button>
+    </div>
+    <div id="modalBody" class="modalBody"></div>
+  </div>
 
-            <pre id="connStatus" class="pre muted"></pre>
-        </section>
-
-        <section class="card">
-            <h2>Lançamento do dia</h2>
-
-            <label class="label">Carro</label>
-            <select id="carSelect" class="input"></select>
-
-            <label class="label">Data</label>
-            <input id="dateInput" type="date" class="input" />
-
-            <div class="row">
-                <label class="check">
-                    <input id="overwrite" type="checkbox" />
-                    Sobrescrever se já existir (overwrite=1)
-                </label>
-            </div>
-
-            <h3>Pessoas</h3>
-            <div id="peopleList" class="people"></div>
-
-            <div class="guestBox">
-                <input id="guestName" class="input" placeholder="Convidado (ex: Pedro)" />
-                <button id="btnAddGuest" class="btn">Adicionar convidado</button>
-            </div>
-
-            <div class="row">
-                <button id="btnSaveTrip" class="btn primary">Salvar lançamento</button>
-                <button id="btnLoadTrip" class="btn">Carregar lançamento</button>
-            </div>
-
-            <pre id="tripStatus" class="pre"></pre>
-        </section>
-
-        <section class="card">
-            <h2>Extrato da semana</h2>
-
-            <label class="label">weekId (segunda-feira)</label>
-            <input id="weekId" class="input" placeholder="2026-02-02" />
-
-            <div class="row">
-                <button id="btnGetStatement" class="btn primary">Gerar extrato</button>
-                <button id="btnCopyStatement" class="btn">Copiar</button>
-            </div>
-
-            <textarea id="statementBox" class="input" rows="10" readonly></textarea>
-        </section>
-
-    </main>
-
-    <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/app.js"></script>
 </body>
-
 </html>

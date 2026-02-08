@@ -1,9 +1,11 @@
-export async function apiRequest(conn, path, { method = "GET", body = null } = {}) {
-  const base = (conn?.apiUrl || "").trim().replace(/\/$/, "");
-  const key = (conn?.accessKey || "").trim();
+import { API_BASE_URL, ACCESS_KEY } from "../config.js";
 
-  if (!base) throw new Error("API URL não informado.");
-  if (!key) throw new Error("Access Key não informado.");
+export async function apiRequest(path, { method = "GET", body = null } = {}) {
+  const base = API_BASE_URL.trim().replace(/\/$/, "");
+  const key = ACCESS_KEY.trim();
+
+  if (!base) throw new Error("API_BASE_URL não configurada.");
+  if (!key) throw new Error("ACCESS_KEY não configurada.");
 
   const res = await fetch(base + path, {
     method,
