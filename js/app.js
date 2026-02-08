@@ -95,6 +95,285 @@ function makeAvatar(personId) {
   div.textContent = initials(displayName);
   return div;
 }
+const weekWrapEl   = document.getElementById("weekWrap");
+const statusEl     = document.getElementById("status");
+const brandSubEl   = document.getElementById("brandSub");
+
+const weekSelectEl = document.getElementById("weekSelect");
+const btnRefresh   = document.getElementById("btnRefresh");
+const btnLaunchDay = document.getElementById("btnLaunchDay");
+const btnExportWpp = document.getElementById("btnExportWpp");
+
+// Modal já existe no seu HTML
+const modalBackdrop = document.getElementById("modalBackdrop");
+const modalEl       = document.getElementById("modal");
+const modalTitleEl  = document.getElementById("modalTitle");
+const modalBodyEl   = document.getElementById("modalBody");
+const modalCloseBtn = document.getElementById("modalClose");
+
+let weeks = [];
+let currentWeek = null;     // { startISO, endISO, label }
+let currentWeekData = null; // { days: [...] }
+
+function toISODateLocal(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatBR(iso){
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function getMonday(d){
+  const x = new Date(d);
+  const dow = x.getDay(); // 0=Dom
+  const diff = (dow === 0 ? -6 : 1 - dow);
+  x.setDate(x.getDate() + diff);
+  x.setHours(0,0,0,0);
+  return x;
+}
+
+function buildLastWeeks(count = 12){
+  const now = new Date();
+  const monday = getMonday(now);
+
+  const out = [];
+  for (let i = 0; i < count; i++){
+    const start = new Date(monday);
+    start.setDate(start.getDate() - i * 7);
+
+    const end = new Date(start);
+    end.setDate(end.getDate() + 4); // Seg–Sex
+
+    const startISO = toISODateLocal(start);
+    const endISO   = toISODateLocal(end);
+
+    out.push({
+      startISO,
+      endISO,
+      label: `${formatBR(startISO)} a ${formatBR(endISO)}`
+    });
+  }
+  return out;
+}
+
+function weekdayShortBR(i){
+  // 0..4
+  return ["SEG", "TER", "QUA", "QUI", "SEX"][i] ?? "";
+}
+
+function buildWeekDaysSkeleton(week){
+  const start = new Date(`${week.startISO}T00:00:00`);
+  const days = [];
+  for (let i = 0; i < 5; i++){
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const iso = toISODateLocal(d);
+    days.push({
+      dateISO: iso,
+      weekDay: weekdayShortBR(i),
+      launched: false,
+      // campos opcionais (quando ligar no backend):
+      // km: 0, cost: 0, obs: "", etc.
+    });
+  }
+  return days;
+}
+
+function renderWeek(days){
+  const html = days.map(d => {
+    const dateShort = formatBR(d.dateISO).slice(0,5); // dd/mm
+    const statusText = d.launched ? "Lançado" : "Dia não lançado";
+
+    return `
+      <div class="dayCard card">
+        <div class="dayTop">
+          <div class="dayName">${d.weekDay}</div>
+          <div class="dayDate muted">${dateShort}</div>
+        </div>
+
+        <div class="dayStatus ${d.launched ? "" : "muted"}">${statusText}</div>
+
+        <div class="dayActions">
+          ${d.launched
+            ? `<button class="btn btnGhost jsDetails" data-date="${d.dateISO}">Ver</button>`
+            : `<button class="btn btnPrimary jsLaunch" data-date="${d.dateISO}">Lançar dia</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  weekWrapEl.innerHTML = html;
+
+  weekWrapEl.querySelectorAll(".jsLaunch").forEach(btn => {
+    btn.addEventListener("click", () => openLaunchModal(btn.dataset.date));
+  });
+
+  weekWrapEl.querySelectorAll(".jsDetails").forEach(btn => {
+    btn.addEventListener("click", () => openDetailsModal(btn.dataset.date));
+  });
+}
+
+function setHeaderWeek(week){
+  brandSubEl.textContent = `Semana: ${week.label}`;
+  statusEl.textContent = "";
+}
+
+function fillWeekSelect(){
+  weekSelectEl.innerHTML = weeks.map((w, idx) => {
+    return `<option value="${w.startISO}" ${idx === 0 ? "selected" : ""}>${w.label}</option>`;
+  }).join("");
+}
+
+async function fetchWeekFromApi(startISO){
+  // Ajuste ESTE endpoint para o seu backend real.
+  // Exemplo esperado: GET /week?start=YYYY-MM-DD -> { days:[{date:"YYYY-MM-DD", launched:true, ...}] }
+  // return await fetch(`${base}/week?start=${startISO}`).then(r => r.json());
+
+  // Por enquanto: sem backend (só skeleton)
+  return { days: [] };
+}
+
+function mergeApiIntoSkeleton(week, apiData){
+  const skeleton = buildWeekDaysSkeleton(week);
+  const map = new Map((apiData?.days ?? []).map(x => [x.date, x]));
+
+  return skeleton.map(d => {
+    const item = map.get(d.dateISO);
+    if (!item) return d;
+    return {
+      ...d,
+      launched: true,
+      ...item,
+      dateISO: d.dateISO,
+      weekDay: d.weekDay,
+    };
+  });
+}
+
+async function loadWeek(startISO){
+  const week = weeks.find(w => w.startISO === startISO) ?? weeks[0];
+  currentWeek = week;
+  setHeaderWeek(week);
+
+  weekWrapEl.innerHTML = `<div class="muted">Carregando...</div>`;
+
+  try{
+    const apiData = await fetchWeekFromApi(week.startISO);
+    currentWeekData = apiData;
+
+    const days = mergeApiIntoSkeleton(week, apiData);
+    renderWeek(days);
+  }catch(err){
+    statusEl.textContent = String(err);
+    const days = buildWeekDaysSkeleton(week);
+    renderWeek(days);
+  }
+}
+
+/* Modal helpers */
+function openModal(title, bodyHtml){
+  modalTitleEl.textContent = title;
+  modalBodyEl.innerHTML = bodyHtml;
+  modalBackdrop.classList.remove("hidden");
+  modalEl.classList.remove("hidden");
+}
+
+function closeModal(){
+  modalBackdrop.classList.add("hidden");
+  modalEl.classList.add("hidden");
+  modalBodyEl.innerHTML = "";
+}
+
+modalCloseBtn.addEventListener("click", closeModal);
+modalBackdrop.addEventListener("click", closeModal);
+
+function openLaunchModal(dateISO){
+  openModal(`Lançar dia (${formatBR(dateISO)})`, `
+    <div class="muted" style="margin-bottom:10px;">Preencha e confirme.</div>
+
+    <label>KM do dia</label>
+    <input id="inKm" type="number" step="0.1" />
+
+    <label style="margin-top:10px;">Observação</label>
+    <input id="inObs" type="text" />
+
+    <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="btnConfirmLaunch" class="btn btnPrimary">Confirmar</button>
+      <button class="btn btnGhost" id="btnCancelLaunch">Cancelar</button>
+    </div>
+  `);
+
+  document.getElementById("btnCancelLaunch").addEventListener("click", closeModal);
+  document.getElementById("btnConfirmLaunch").addEventListener("click", async () => {
+    const km = Number(document.getElementById("inKm").value || 0);
+    const obs = (document.getElementById("inObs").value || "").trim();
+
+    // Ajuste ESTE POST para o seu backend real:
+    // await fetch(`${base}/day`, { method:"POST", headers:{...}, body: JSON.stringify({ date: dateISO, km, obs }) })
+
+    closeModal();
+    await loadWeek(currentWeek.startISO);
+  });
+}
+
+function openDetailsModal(dateISO){
+  openModal(`Detalhes (${formatBR(dateISO)})`, `
+    <div class="muted">Aqui você exibe os dados do dia vindos da API.</div>
+  `);
+}
+
+/* Extrato WhatsApp */
+function buildWhatsAppText(week, apiData){
+  const days = mergeApiIntoSkeleton(week, apiData ?? {days:[]});
+  const lines = [];
+  lines.push(`*MEUFInanças — Semana ${week.label}*`);
+  lines.push("");
+
+  for (const d of days){
+    const ddmm = formatBR(d.dateISO).slice(0,5);
+    if (!d.launched){
+      lines.push(`${d.weekDay} (${ddmm}): não lançado`);
+    }else{
+      // Ajuste campos conforme seu retorno real (ex.: d.km, d.cost)
+      const kmTxt = (d.km != null) ? ` — ${d.km} km` : "";
+      lines.push(`${d.weekDay} (${ddmm}): lançado${kmTxt}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+btnExportWpp.addEventListener("click", async () => {
+  try{
+    const text = buildWhatsAppText(currentWeek, currentWeekData);
+    await navigator.clipboard.writeText(text);
+    statusEl.textContent = "Extrato copiado para a área de transferência.";
+  }catch(err){
+    statusEl.textContent = "Não consegui copiar automaticamente. Abra no modal e copie manualmente.";
+    openModal("Extrato WhatsApp", `<textarea style="width:100%; height:240px;">${buildWhatsAppText(currentWeek, currentWeekData)}</textarea>`);
+  }
+});
+
+btnLaunchDay.addEventListener("click", () => {
+  // por padrão lança o primeiro dia da semana selecionada
+  const firstDayISO = currentWeek?.startISO ?? weeks[0].startISO;
+  openLaunchModal(firstDayISO);
+});
+
+btnRefresh.addEventListener("click", () => loadWeek(weekSelectEl.value));
+
+weekSelectEl.addEventListener("change", () => loadWeek(weekSelectEl.value));
+
+/* init */
+weeks = buildLastWeeks(12);
+fillWeekSelect();
+loadWeek(weeks[0].startISO);
+
 
 function makeDriverMini(driverPersonId) {
   const pm = peopleMap();

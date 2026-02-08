@@ -1,49 +1,62 @@
 <!doctype html>
 <html lang="pt-br">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Carpool</title>
-  <link rel="stylesheet" href="./css/app.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Carpool</title>
+    <link rel="stylesheet" href="./css/app.css" />
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="topbarInner">
-      <div class="brand">
-        <img class="brandLogo" src="./assets/logo.png" alt="Logo" />
-        <div class="brandText">
-          <div class="brandTitle">MEUFInanças</div>
-          <div class="brandSub">Semana atual</div>
+    <header class="topbar">
+        <div class="topbarInner">
+            <div class="brand">
+                <img class="brandLogo" src="./assets/logo.png" alt="Logo" />
+                <div class="brandText">
+                    <div class="brandTitle">MEUFInanças</div>
+                    <div id="brandSub" class="brandSub">Semana: --/--/---- a --/--/----</div>
+                </div>
+
+            </div>
         </div>
-      </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <div class="cardHeader">
+                <div class="cardHeaderLeft">
+                    <div class="weekTitle">Semana:</div>
+                    <select id="weekSelect" class="select"></select>
+                </div>
+
+                <div class="cardHeaderRight">
+                    <button id="btnLaunchDay" class="btn btnPrimary">Lançar dia</button>
+                    <button id="btnExportWpp" class="btn btnGhost">Extrato WhatsApp</button>
+                    <button id="btnRefresh" class="btn">Atualizar</button>
+                </div>
+            </div>
+
+
+            <div id="weekWrap" class="weekWrap">
+                <div class="muted">Carregando...</div>
+            </div>
+
+            <pre id="status" class="pre muted"></pre>
+        </section>
+    </main>
+
+    <!-- Modal (popup) -->
+    <div id="modalBackdrop" class="modalBackdrop hidden"></div>
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modalHeader">
+            <div id="modalTitle" class="modalTitle">Detalhes</div>
+            <button id="modalClose" class="btn">Fechar</button>
+        </div>
+        <div id="modalBody" class="modalBody"></div>
     </div>
-  </header>
 
-  <main class="container">
-    <section class="card">
-      <div class="cardHeader">
-        <h2>Semana atual (Seg–Sex)</h2>
-        <button id="btnRefresh" class="btn">Atualizar</button>
-      </div>
-
-      <div id="weekWrap" class="weekWrap">
-        <div class="muted">Carregando...</div>
-      </div>
-
-      <pre id="status" class="pre muted"></pre>
-    </section>
-  </main>
-
-  <!-- Modal (popup) -->
-  <div id="modalBackdrop" class="modalBackdrop hidden"></div>
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modalHeader">
-      <div id="modalTitle" class="modalTitle">Detalhes</div>
-      <button id="modalClose" class="btn">Fechar</button>
-    </div>
-    <div id="modalBody" class="modalBody"></div>
-  </div>
-
-  <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/app.js"></script>
 </body>
+
 </html>
