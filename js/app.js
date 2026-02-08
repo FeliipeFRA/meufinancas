@@ -216,7 +216,7 @@ async function renderWeek() {
 
       const carImg = document.createElement("img");
       carImg.className = "carPhoto";
-      carImg.src = CAR_PHOTOS[carId] || "./assets/cars/placeholder.jpg";
+      carImg.src = CAR_PHOTOS[carId] || "./assets/cars/placeholder.png";
       carImg.alt = car?.label || carId;
 
       const driverMini = makeDriverMini(driverId);
