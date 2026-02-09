@@ -406,3 +406,54 @@ h2{
 }
 
 .btnIcon i{ font-size: 18px; }
+
+.weekPicker{
+  display:grid;
+  gap:6px;
+  margin: 14px 0 10px;
+}
+.weekPickerLabel{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.select{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+}
+
+.btnBig{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+/* modal responsivo */
+.modal{
+  width:min(92vw, 560px);
+  max-height: 86vh;
+  display:flex;
+  flex-direction:column;
+}
+.modalBody{
+  overflow:auto;
+  max-height: calc(86vh - 64px);
+}
+
+@media (max-width: 520px){
+  .actionsTop{ grid-template-columns: 1fr; }
+  .modal{
+    left:0; right:0; bottom:0; top:auto;
+    transform:none;
+    width:100vw;
+    border-radius:16px 16px 0 0;
+    max-height: 88vh;
+  }
+  .modalBody{ max-height: calc(88vh - 64px); }
+}
+

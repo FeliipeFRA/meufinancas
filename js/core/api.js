@@ -1,8 +1,8 @@
 import { API_BASE_URL, ACCESS_KEY } from "../config.js";
 
 export async function apiRequest(path, { method = "GET", body = null } = {}) {
-  const base = API_BASE_URL.trim().replace(/\/$/, "");
-  const key = ACCESS_KEY.trim();
+  const base = String(API_BASE_URL || "").trim().replace(/\/$/, "");
+  const key = String(ACCESS_KEY || "").trim();
 
   if (!base) throw new Error("API_BASE_URL não configurada.");
   if (!key) throw new Error("ACCESS_KEY não configurada.");

@@ -25,10 +25,24 @@
     </header>
 
     <main class="container">
-        <div class="actionsTop">
-            <button id="btnLaunchDay" class="btn btnBig btnPrimary">Lançar dia</button>
-            <button id="btnExportWpp" class="btn btnBig btnGhost">Extrato WhatsApp</button>
+
+        <div class="weekPicker">
+            <div class="weekPickerLabel">Semana</div>
+            <select id="weekSelect" class="select"></select>
         </div>
+
+        <div class="actionsTop">
+            <button id="btnLaunchDay" class="btn btnBig btnPrimary">
+                <i class="bi bi-plus-circle"></i>
+                Lançar dia
+            </button>
+
+            <button id="btnExportWpp" class="btn btnBig btnGhost">
+                <i class="bi bi-whatsapp"></i>
+                Extrato WhatsApp
+            </button>
+        </div>
+
 
         <section class="card">
             <div class="cardHeader">
