@@ -27,7 +27,7 @@ function toISODate(d) {
 }
 
 function brDate(iso) {
-  const [y,m,d] = iso.split("-");
+  const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
@@ -36,7 +36,7 @@ function mondayOfCurrentWeek() {
   const day = now.getDay(); // 0 dom
   const diff = (day === 0 ? -6 : 1 - day); // seg
   const monday = new Date(now);
-  monday.setHours(0,0,0,0);
+  monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() + diff);
   return monday;
 }
@@ -53,7 +53,7 @@ function weekMonToFriDates() {
 }
 
 function weekdayShort(i) {
-  return ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][i] || "";
+  return ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][i] || "";
 }
 
 function initials(name) {
@@ -95,53 +95,53 @@ function makeAvatar(personId) {
   div.textContent = initials(displayName);
   return div;
 }
-const weekWrapEl   = document.getElementById("weekWrap");
-const statusEl     = document.getElementById("status");
-const brandSubEl   = document.getElementById("brandSub");
+const weekWrapEl = document.getElementById("weekWrap");
+const statusEl = document.getElementById("status");
+const brandSubEl = document.getElementById("brandSub");
 
 const weekSelectEl = document.getElementById("weekSelect");
-const btnRefresh   = document.getElementById("btnRefresh");
+const btnRefresh = document.getElementById("btnRefresh");
 const btnLaunchDay = document.getElementById("btnLaunchDay");
 const btnExportWpp = document.getElementById("btnExportWpp");
 
 // Modal já existe no seu HTML
 const modalBackdrop = document.getElementById("modalBackdrop");
-const modalEl       = document.getElementById("modal");
-const modalTitleEl  = document.getElementById("modalTitle");
-const modalBodyEl   = document.getElementById("modalBody");
+const modalEl = document.getElementById("modal");
+const modalTitleEl = document.getElementById("modalTitle");
+const modalBodyEl = document.getElementById("modalBody");
 const modalCloseBtn = document.getElementById("modalClose");
 
 let weeks = [];
 let currentWeek = null;     // { startISO, endISO, label }
 let currentWeekData = null; // { days: [...] }
 
-function toISODateLocal(d){
+function toISODateLocal(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-function formatBR(iso){
+function formatBR(iso) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-function getMonday(d){
+function getMonday(d) {
   const x = new Date(d);
   const dow = x.getDay(); // 0=Dom
   const diff = (dow === 0 ? -6 : 1 - dow);
   x.setDate(x.getDate() + diff);
-  x.setHours(0,0,0,0);
+  x.setHours(0, 0, 0, 0);
   return x;
 }
 
-function buildLastWeeks(count = 12){
+function buildLastWeeks(count = 12) {
   const now = new Date();
   const monday = getMonday(now);
 
   const out = [];
-  for (let i = 0; i < count; i++){
+  for (let i = 0; i < count; i++) {
     const start = new Date(monday);
     start.setDate(start.getDate() - i * 7);
 
@@ -149,7 +149,7 @@ function buildLastWeeks(count = 12){
     end.setDate(end.getDate() + 4); // Seg–Sex
 
     const startISO = toISODateLocal(start);
-    const endISO   = toISODateLocal(end);
+    const endISO = toISODateLocal(end);
 
     out.push({
       startISO,
@@ -160,15 +160,15 @@ function buildLastWeeks(count = 12){
   return out;
 }
 
-function weekdayShortBR(i){
+function weekdayShortBR(i) {
   // 0..4
   return ["SEG", "TER", "QUA", "QUI", "SEX"][i] ?? "";
 }
 
-function buildWeekDaysSkeleton(week){
+function buildWeekDaysSkeleton(week) {
   const start = new Date(`${week.startISO}T00:00:00`);
   const days = [];
-  for (let i = 0; i < 5; i++){
+  for (let i = 0; i < 5; i++) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
     const iso = toISODateLocal(d);
@@ -183,9 +183,9 @@ function buildWeekDaysSkeleton(week){
   return days;
 }
 
-function renderWeek(days){
+function renderWeek(days) {
   const html = days.map(d => {
-    const dateShort = formatBR(d.dateISO).slice(0,5); // dd/mm
+    const dateShort = formatBR(d.dateISO).slice(0, 5); // dd/mm
     const statusText = d.launched ? "Lançado" : "Dia não lançado";
 
     return `
@@ -199,9 +199,9 @@ function renderWeek(days){
 
         <div class="dayActions">
           ${d.launched
-            ? `<button class="btn btnGhost jsDetails" data-date="${d.dateISO}">Ver</button>`
-            : `<button class="btn btnPrimary jsLaunch" data-date="${d.dateISO}">Lançar dia</button>`
-          }
+        ? `<button class="btn btnGhost jsDetails" data-date="${d.dateISO}">Ver</button>`
+        : `<button class="btn btnPrimary jsLaunch" data-date="${d.dateISO}">Lançar dia</button>`
+      }
         </div>
       </div>
     `;
@@ -218,18 +218,18 @@ function renderWeek(days){
   });
 }
 
-function setHeaderWeek(week){
+function setHeaderWeek(week) {
   brandSubEl.textContent = `Semana: ${week.label}`;
   statusEl.textContent = "";
 }
 
-function fillWeekSelect(){
+function fillWeekSelect() {
   weekSelectEl.innerHTML = weeks.map((w, idx) => {
     return `<option value="${w.startISO}" ${idx === 0 ? "selected" : ""}>${w.label}</option>`;
   }).join("");
 }
 
-async function fetchWeekFromApi(startISO){
+async function fetchWeekFromApi(startISO) {
   // Ajuste ESTE endpoint para o seu backend real.
   // Exemplo esperado: GET /week?start=YYYY-MM-DD -> { days:[{date:"YYYY-MM-DD", launched:true, ...}] }
   // return await fetch(`${base}/week?start=${startISO}`).then(r => r.json());
@@ -238,7 +238,7 @@ async function fetchWeekFromApi(startISO){
   return { days: [] };
 }
 
-function mergeApiIntoSkeleton(week, apiData){
+function mergeApiIntoSkeleton(week, apiData) {
   const skeleton = buildWeekDaysSkeleton(week);
   const map = new Map((apiData?.days ?? []).map(x => [x.date, x]));
 
@@ -255,20 +255,20 @@ function mergeApiIntoSkeleton(week, apiData){
   });
 }
 
-async function loadWeek(startISO){
+async function loadWeek(startISO) {
   const week = weeks.find(w => w.startISO === startISO) ?? weeks[0];
   currentWeek = week;
   setHeaderWeek(week);
 
   weekWrapEl.innerHTML = `<div class="muted">Carregando...</div>`;
 
-  try{
+  try {
     const apiData = await fetchWeekFromApi(week.startISO);
     currentWeekData = apiData;
 
     const days = mergeApiIntoSkeleton(week, apiData);
     renderWeek(days);
-  }catch(err){
+  } catch (err) {
     statusEl.textContent = String(err);
     const days = buildWeekDaysSkeleton(week);
     renderWeek(days);
@@ -276,14 +276,14 @@ async function loadWeek(startISO){
 }
 
 /* Modal helpers */
-function openModal(title, bodyHtml){
+function openModal(title, bodyHtml) {
   modalTitleEl.textContent = title;
   modalBodyEl.innerHTML = bodyHtml;
   modalBackdrop.classList.remove("hidden");
   modalEl.classList.remove("hidden");
 }
 
-function closeModal(){
+function closeModal() {
   modalBackdrop.classList.add("hidden");
   modalEl.classList.add("hidden");
   modalBodyEl.innerHTML = "";
@@ -292,7 +292,7 @@ function closeModal(){
 modalCloseBtn.addEventListener("click", closeModal);
 modalBackdrop.addEventListener("click", closeModal);
 
-function openLaunchModal(dateISO){
+function openLaunchModal(dateISO) {
   openModal(`Lançar dia (${formatBR(dateISO)})`, `
     <div class="muted" style="margin-bottom:10px;">Preencha e confirme.</div>
 
@@ -321,24 +321,24 @@ function openLaunchModal(dateISO){
   });
 }
 
-function openDetailsModal(dateISO){
+function openDetailsModal(dateISO) {
   openModal(`Detalhes (${formatBR(dateISO)})`, `
     <div class="muted">Aqui você exibe os dados do dia vindos da API.</div>
   `);
 }
 
 /* Extrato WhatsApp */
-function buildWhatsAppText(week, apiData){
-  const days = mergeApiIntoSkeleton(week, apiData ?? {days:[]});
+function buildWhatsAppText(week, apiData) {
+  const days = mergeApiIntoSkeleton(week, apiData ?? { days: [] });
   const lines = [];
   lines.push(`*MEUFInanças — Semana ${week.label}*`);
   lines.push("");
 
-  for (const d of days){
-    const ddmm = formatBR(d.dateISO).slice(0,5);
-    if (!d.launched){
+  for (const d of days) {
+    const ddmm = formatBR(d.dateISO).slice(0, 5);
+    if (!d.launched) {
       lines.push(`${d.weekDay} (${ddmm}): não lançado`);
-    }else{
+    } else {
       // Ajuste campos conforme seu retorno real (ex.: d.km, d.cost)
       const kmTxt = (d.km != null) ? ` — ${d.km} km` : "";
       lines.push(`${d.weekDay} (${ddmm}): lançado${kmTxt}`);
@@ -349,11 +349,11 @@ function buildWhatsAppText(week, apiData){
 }
 
 btnExportWpp.addEventListener("click", async () => {
-  try{
+  try {
     const text = buildWhatsAppText(currentWeek, currentWeekData);
     await navigator.clipboard.writeText(text);
     statusEl.textContent = "Extrato copiado para a área de transferência.";
-  }catch(err){
+  } catch (err) {
     statusEl.textContent = "Não consegui copiar automaticamente. Abra no modal e copie manualmente.";
     openModal("Extrato WhatsApp", `<textarea style="width:100%; height:240px;">${buildWhatsAppText(currentWeek, currentWeekData)}</textarea>`);
   }
@@ -429,6 +429,13 @@ async function loadTrip(carId, dateISO) {
 
 async function renderWeek() {
   const wrap = $("weekWrap");
+
+  if (!wrap) {
+    setStatus("ERRO: elemento #weekWrap não encontrado no HTML.");
+    return;
+  }
+
+
   wrap.innerHTML = `<div class="muted">Carregando semana...</div>`;
 
   if (!CONFIG) await loadConfig();
@@ -463,7 +470,7 @@ async function renderWeek() {
     const header = document.createElement("div");
     header.className = "dayHeader";
     header.innerHTML = `
-      <div class="dayTitle">${weekdayShort(d.getDay() === 0 ? 6 : d.getDay()-1)} ${brDate(iso)}</div>
+      <div class="dayTitle">${weekdayShort(d.getDay() === 0 ? 6 : d.getDay() - 1)} ${brDate(iso)}</div>
       <div class="dayMeta">${dayTrips.length ? `${dayTrips.length} lançamento(s)` : "sem lançamentos"}</div>
     `;
     dayCard.appendChild(header);
@@ -552,11 +559,16 @@ async function renderWeek() {
 }
 
 function init() {
-  $("btnRefresh").onclick = () => renderWeek().catch(e => setStatus(`Erro: ${e.message}`));
-  $("modalClose").onclick = closeModal;
-  $("modalBackdrop").onclick = closeModal;
+  const btn = $("btnRefresh");
+  if (btn) btn.onclick = () => renderWeek().catch(e => setStatus(`Erro: ${e.message}`));
+
+  const close = $("modalClose");
+  const back = $("modalBackdrop");
+  if (close) close.onclick = closeModal;
+  if (back) back.onclick = closeModal;
 
   renderWeek().catch(e => setStatus(`Erro: ${e.message}`));
 }
+
 
 init();
