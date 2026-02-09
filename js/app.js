@@ -30,6 +30,21 @@ function brDate(iso) {
   return `${d}/${m}/${y}`;
 }
 
+function weekdayLongPt(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  const names = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado"
+  ];
+  return names[d.getDay()] || "";
+}
+
+
 function getMonday(d) {
   const x = new Date(d);
   const day = x.getDay();
@@ -152,13 +167,21 @@ function makeDriverMini(driverPersonId) {
 function openModal(title, html) {
   $("modalTitle").textContent = title;
   $("modalBody").innerHTML = html;
+
   $("modalBackdrop").classList.remove("hidden");
   $("modal").classList.remove("hidden");
+
+  // trava scroll enquanto modal está aberto
+  document.body.style.overflow = "hidden";
 }
+
 function closeModal() {
   $("modalBackdrop").classList.add("hidden");
   $("modal").classList.add("hidden");
   $("modalBody").innerHTML = "";
+
+  // destrava scroll
+  document.body.style.overflow = "";
 }
 
 /* API */
@@ -222,9 +245,10 @@ async function renderWeek(startISO) {
     const header = document.createElement("div");
     header.className = "dayHeader";
     header.innerHTML = `
-      <div class="dayTitle">${brDate(iso)}</div>
-      <div class="dayMeta">${dayTrips.length ? `${dayTrips.length} lançamento(s)` : "sem lançamentos"}</div>
-    `;
+  <div class="dayTitle">${weekdayLongPt(iso)} • ${brDate(iso)}</div>
+  <div class="dayMeta">${dayTrips.length ? `${dayTrips.length} lançamento(s)` : "sem lançamentos"}</div>
+`;
+
     dayCard.appendChild(header);
 
     if (!dayTrips.length) {
@@ -573,6 +597,11 @@ async function openStatementModal() {
 function init() {
   $("modalClose")?.addEventListener("click", closeModal);
   $("modalBackdrop")?.addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+
 
   const weekSelect = $("weekSelect");
   const weeks = buildLastWeeks(12);
