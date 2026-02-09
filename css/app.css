@@ -369,3 +369,40 @@ h2{
 .btnGhost{
   background: transparent;
 }
+
+.actionsTop{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.btnBig{
+  padding: 14px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 14px;
+}
+
+.btnPrimary{
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.btnGhost{
+  background: #fff;
+  border: 2px solid var(--red);
+  color: var(--red);
+}
+
+.btnIcon{
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.btnIcon i{ font-size: 18px; }
