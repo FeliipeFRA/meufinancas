@@ -509,14 +509,21 @@ async function openStatementModal() {
     const went = Array.isArray(trip.went) ? trip.went : [];
     const ret = Array.isArray(trip.returned) ? trip.returned : [];
 
+    // motorisa entra no divisor, mas não gera PIX para ele mesmo
     if (fareGo > 0 && went.length > 0) {
-      const share = fareGo / went.length;
-      went.forEach(pid => add(pid, driverId, share));
+      const share = fareGo / went.length; // inclui motorista no rateio
+      went.forEach(pid => {
+        if (pid !== driverId) add(pid, driverId, share); // só gera PIX se não for o motorista
+      });
     }
+
     if (fareRet > 0 && ret.length > 0) {
-      const share = fareRet / ret.length;
-      ret.forEach(pid => add(pid, driverId, share));
+      const share = fareRet / ret.length; // inclui motorista no rateio
+      ret.forEach(pid => {
+        if (pid !== driverId) add(pid, driverId, share); // só gera PIX se não for o motorista
+      });
     }
+
   });
 
   const driverLabel = (id) => pm.get(id)?.name || id;
