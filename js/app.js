@@ -13,6 +13,31 @@ const CAR_PHOTOS = {
   CELTA: "./assets/cars/celta.png",
 };
 
+const MIN_START_ISO = "2026-02-02";
+
+function buildWeeksFromMin(minStartISO) {
+  const minMon = getMonday(new Date(`${minStartISO}T00:00:00`));
+  const curMon = getMonday(new Date());
+
+  const out = [];
+  for (let d = new Date(curMon); d >= minMon; d.setDate(d.getDate() - 7)) {
+    const start = new Date(d);
+    const end = new Date(d);
+    end.setDate(end.getDate() + 4);
+
+    const startISO = toISODate(start);
+    const endISO = toISODate(end);
+
+    out.push({
+      startISO,
+      endISO,
+      label: `${brDate(startISO)} a ${brDate(endISO)}`
+    });
+  }
+  return out;
+}
+
+
 function setStatus(msg) {
   const el = $("status");
   if (el) el.textContent = msg || "";
@@ -106,6 +131,23 @@ function initials(name) {
   const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (a + b).toUpperCase();
 }
+
+function escHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function avatarMarkup(displayName, photoUrl) {
+  if (photoUrl) {
+    return `<img class="avatar" src="${escHtml(photoUrl)}" alt="${escHtml(displayName)}">`;
+  }
+  return `<div class="avatar" title="${escHtml(displayName)}">${initials(displayName)}</div>`;
+}
+
 
 function slugGuest(name) {
   return String(name || "")
@@ -207,7 +249,7 @@ async function renderWeek(startISO) {
 
   if (!CONFIG) await loadConfig();
 
-  const weeks = buildLastWeeks(12);
+  const weeks = buildWeeksFromMin(MIN_START_ISO)
   const week = weeks.find(w => w.startISO === startISO) || weeks[0];
   selectedWeekStartISO = week.startISO;
   setHeaderWeekLabel(week.startISO, week.endISO);
@@ -338,7 +380,7 @@ async function renderWeek(startISO) {
 
 /* Modal lançar dia */
 function openLaunchModal(preset = null) {
-  const weeks = buildLastWeeks(12);
+  const weeks = buildWeeksFromMin(MIN_START_ISO)
   const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
   const dates = weekDatesFromStartISO(week.startISO).map(x => x.iso);
 
@@ -363,7 +405,7 @@ function openLaunchModal(preset = null) {
     return `
       <div class="pickRow" data-pid="${p.personId}">
         <div class="pickLeft">
-          <div class="avatar">${initials(p.name)}</div>
+          <div class="avatar">${avatarMarkup(p.name, p.photoUrl)}</div>
           <div>
             <div style="font-weight:800;">${p.name}</div>
             <div style="font-size:12px; color:var(--muted);">${p.personId}</div>
@@ -427,7 +469,7 @@ function openLaunchModal(preset = null) {
     row.dataset.pid = pid;
     row.innerHTML = `
       <div class="pickLeft">
-        <div class="avatar">${initials(name)}</div>
+        <div class="avatar">${avatarMarkup(name, "")}</div>
         <div>
           <div style="font-weight:800;">${name}</div>
           <div style="font-size:12px; color:var(--muted);">${pid}</div>
@@ -503,7 +545,7 @@ function displayName(pid) {
 async function openStatementModal() {
   if (!CONFIG) await loadConfig();
 
-  const weeks = buildLastWeeks(12);
+  const weeks = buildWeeksFromMin(MIN_START_ISO)
   const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
 
   if (!currentWeekCache.length) {
@@ -604,7 +646,7 @@ function init() {
 
 
   const weekSelect = $("weekSelect");
-  const weeks = buildLastWeeks(12);
+  const weeks = buildWeeksFromMin(MIN_START_ISO)
 
   weekSelect.innerHTML = weeks.map((w, idx) =>
     `<option value="${w.startISO}" ${idx === 0 ? "selected" : ""}>${w.label}</option>`

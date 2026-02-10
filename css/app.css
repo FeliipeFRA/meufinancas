@@ -245,7 +245,9 @@ h2{
   overflow:hidden;
 }
 
-
+img.avatar{
+  object-fit: cover;
+}
 
 .modalHeader{
   padding:12px;
