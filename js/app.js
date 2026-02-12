@@ -148,6 +148,19 @@ function avatarMarkup(displayName, photoUrl) {
   return `<div class="avatar" title="${escHtml(displayName)}">${initials(displayName)}</div>`;
 }
 
+function driverMiniMarkup(personId) {
+  const pm = peopleMap();
+  const p = pm.get(personId);
+  const name = p?.name || personId;
+  const photoUrl = p?.photoUrl || "";
+
+  if (photoUrl) {
+    return `<img class="driverMini" src="${escHtml(photoUrl)}" alt="${escHtml(name)}">`;
+  }
+  return `<div class="driverMini" title="${escHtml(name)}">${initials(name)}</div>`;
+}
+
+
 
 function slugGuest(name) {
   return String(name || "")
@@ -354,19 +367,42 @@ async function renderWeek(startISO) {
       row.appendChild(colRet);
 
       row.onclick = () => {
+        const wentHtml = (trip.went || []).map(pid => makeAvatar(pid).outerHTML).join("");
+        const retHtml = (trip.returned || []).map(pid => makeAvatar(pid).outerHTML).join("");
+
         openModal(
-          `${car?.label || carId} - ${brDate(iso)}`,
+          `${car?.label || carId} • ${weekdayLongPt(iso)} • ${brDate(iso)}`,
           `
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-              <button class="btn btnPrimary" id="btnEditTrip">Editar</button>
-            </div>
-            <pre class="pre">${JSON.stringify(trip, null, 2)}</pre>
-          `
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+        <img class="carPhoto" src="${CAR_PHOTOS[carId] || "./assets/cars/placeholder.png"}" alt="">
+        ${makeDriverMini(driverId).outerHTML}
+        <div>
+          <div style="font-weight:900;">${car?.label || carId}</div>
+          <div class="muted" style="font-size:12px;">Motorista: ${driverName}</div>
+        </div>
+      </div>
+
+      <div class="fieldLabel">FOI</div>
+      <div class="avatars" style="margin-bottom:12px;">${wentHtml || `<span class="muted">ninguém</span>`}</div>
+
+      <div class="fieldLabel">VOLTOU</div>
+      <div class="avatars" style="margin-bottom:14px;">${retHtml || `<span class="muted">ninguém</span>`}</div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btnPrimary" id="btnEditTrip" type="button">
+          <i class="bi bi-pencil-square"></i> Editar
+        </button>
+        <button class="btn" id="btnCloseDetails" type="button">
+          <i class="bi bi-x-circle"></i> Fechar
+        </button>
+      </div>
+    `
         );
 
         document.getElementById("btnEditTrip")?.addEventListener("click", () => {
           openLaunchModal({ dateISO: iso, carId, trip, overwrite: true });
         });
+        document.getElementById("btnCloseDetails")?.addEventListener("click", closeModal);
       };
 
       dayCard.appendChild(row);
@@ -375,7 +411,7 @@ async function renderWeek(startISO) {
     wrap.appendChild(dayCard);
   }
 
-  setStatus("OK.");
+  setStatus("");
 }
 
 /* Modal lançar dia */
@@ -392,71 +428,154 @@ function openLaunchModal(preset = null) {
   const presetRet = new Set(preset?.trip?.returned || (CONFIG.people || []).map(p => p.personId));
   const presetOverwrite = !!preset?.overwrite;
 
-  const carsOptions = (CONFIG.cars || []).map(c => {
+  const cars = (CONFIG.cars || []);
+  const carCards = cars.map(c => {
     const driverName = pm.get(c.driverPersonId)?.name || c.driverPersonId;
-    return `<option value="${c.carId}" ${c.carId === presetCar ? "selected" : ""}>${c.label} (${driverName})</option>`;
+    const on = c.carId === presetCar ? "on" : "";
+    const img = CAR_PHOTOS[c.carId] || "./assets/cars/placeholder.png";
+    return `
+    <button type="button" class="carOpt ${on}" data-car="${c.carId}">
+      <img class="carOptImg" src="${escHtml(img)}" alt="${escHtml(c.label)}">
+      <div class="carOptMeta">
+        <div class="carOptTitle">${escHtml(c.label)}</div>
+        <div class="carOptSub">
+          ${driverMiniMarkup(c.driverPersonId)}
+          <span>${escHtml(driverName)}</span>
+        </div>
+      </div>
+    </button>
+  `;
   }).join("");
 
-  const dateOptions = dates.map(d => `<option value="${d}" ${d === presetDate ? "selected" : ""}>${brDate(d)}</option>`).join("");
+  const dateOptions = dates
+    .map(d => `<option value="${d}" ${d === presetDate ? "selected" : ""}>${brDate(d)}</option>`)
+    .join("");
+
 
   const peopleRows = (CONFIG.people || []).map(p => {
-    const wentChecked = presetWent.has(p.personId) ? "checked" : "";
-    const retChecked = presetRet.has(p.personId) ? "checked" : "";
+    const wentChecked = presetWent.has(p.personId);
+    const retChecked = presetRet.has(p.personId);
     return `
-      <div class="pickRow" data-pid="${p.personId}">
-        <div class="pickLeft">
-          <div class="avatar">${avatarMarkup(p.name, p.photoUrl)}</div>
-          <div>
-            <div style="font-weight:800;">${p.name}</div>
-            <div style="font-size:12px; color:var(--muted);">${p.personId}</div>
-          </div>
+    <div class="pickRow" data-pid="${p.personId}">
+      <div class="pickLeft">
+        ${avatarMarkup(p.name, p.photoUrl)}
+        <div class="pickNames">
+          <div class="pickName">${escHtml(p.name)}</div>
+          <div class="pickId">${escHtml(p.personId)}</div>
         </div>
-
-        <label><input type="checkbox" class="cbWent" ${wentChecked} /> FOI</label>
-        <label class="chkReturn"><input type="checkbox" class="cbRet" ${retChecked} /> VOLTOU</label>
       </div>
-    `;
+
+      <div class="toggles">
+        <input class="cbWent srOnly" type="checkbox" ${wentChecked ? "checked" : ""}>
+        <button type="button" class="tglBtn tglWent ${wentChecked ? "on" : ""}">FOI</button>
+
+        <input class="cbRet srOnly" type="checkbox" ${retChecked ? "checked" : ""}>
+        <button type="button" class="tglBtn tglRet ${retChecked ? "on" : ""}">VOLTOU</button>
+      </div>
+    </div>
+  `;
   }).join("");
 
   openModal(preset ? "Editar lançamento" : "Lançar dia", `
-    <div class="formGrid">
-      <div>
-        <div class="fieldLabel">Data</div>
-        <select id="inDate" class="input">${dateOptions}</select>
-      </div>
+  <div class="formGrid">
 
-      <div>
-        <div class="fieldLabel">Carro</div>
-        <select id="inCar" class="input">${carsOptions}</select>
-      </div>
-
-      <div>
-        <div class="fieldLabel">Pessoas</div>
-        <div id="pickList" class="pickList">${peopleRows}</div>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <input id="inGuestName" class="input" placeholder="Convidado (ex: Pedro)" />
-        <button id="btnAddGuest" class="btn">Adicionar</button>
-      </div>
-
-      <label style="display:flex; gap:8px; align-items:center;">
-        <input id="inOverwrite" type="checkbox" ${presetOverwrite ? "checked" : ""} />
-        Sobrescrever se já existir
-      </label>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button id="btnSaveTrip" class="btn btnPrimary">Salvar</button>
-        <button id="btnCancelTrip" class="btn">Cancelar</button>
-      </div>
-
-      <div id="modalStatus" class="smallStatus"></div>
+    <div>
+      <div class="fieldLabel">Data</div>
+      <select id="inDate" class="input">${dateOptions}</select>
     </div>
-  `);
 
-  const pickListEl = document.getElementById("pickList");
+    <div>
+      <div class="fieldLabel">Carro</div>
+      <input type="hidden" id="inCar" value="${escHtml(presetCar)}">
+      <div id="carPicker" class="carPicker">${carCards}</div>
+    </div>
+
+    <div>
+      <div class="fieldLabel">Pessoas</div>
+      <div id="pickList" class="pickList">${peopleRows}</div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <input id="inGuestName" class="input" placeholder="Convidado (ex: Pedro)" />
+      <button id="btnAddGuest" class="btn btnIcon" type="button" aria-label="Adicionar">
+        <i class="bi bi-person-plus"></i>
+      </button>
+    </div>
+
+    <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
+      <input id="inOverwrite" type="checkbox" ${presetOverwrite ? "checked" : ""} />
+      Sobrescrever se já existir
+    </label>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="btnSaveTrip" class="btn btnPrimary" type="button">
+        <i class="bi bi-check2-circle"></i> Salvar
+      </button>
+      <button id="btnCancelTrip" class="btn" type="button">
+        <i class="bi bi-x-circle"></i> Cancelar
+      </button>
+    </div>
+
+    <div id="modalStatus" class="smallStatus"></div>
+  </div>
+`);
+
+
   const modalStatusEl = document.getElementById("modalStatus");
   const setModalStatus = (m) => { if (modalStatusEl) modalStatusEl.textContent = m || ""; };
+
+  function wireToggleRow(row) {
+    const cbWent = row.querySelector(".cbWent");
+    const cbRet = row.querySelector(".cbRet");
+    const btWent = row.querySelector(".tglWent");
+    const btRet = row.querySelector(".tglRet");
+
+    btWent?.addEventListener("click", () => {
+      cbWent.checked = !cbWent.checked;
+      btWent.classList.toggle("on", cbWent.checked);
+    });
+
+    btRet?.addEventListener("click", () => {
+      cbRet.checked = !cbRet.checked;
+      btRet.classList.toggle("on", cbRet.checked);
+    });
+  }
+
+  // aplica nos fixos (já renderizados)
+  pickListEl?.querySelectorAll(".pickRow").forEach(wireToggleRow);
+
+
+  // ===== car picker =====
+  const carPickerEl = document.getElementById("carPicker");
+  const inCarEl = document.getElementById("inCar");
+
+  carPickerEl?.querySelectorAll(".carOpt").forEach(btn => {
+    btn.addEventListener("click", () => {
+      carPickerEl.querySelectorAll(".carOpt").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      inCarEl.value = btn.dataset.car;
+    });
+  });
+
+  // ===== toggles FOI/VOLTOU =====
+  const pickListEl = document.getElementById("pickList");
+  pickListEl?.querySelectorAll(".pickRow").forEach(row => {
+    const cbWent = row.querySelector(".cbWent");
+    const cbRet = row.querySelector(".cbRet");
+    const btWent = row.querySelector(".tglWent");
+    const btRet = row.querySelector(".tglRet");
+
+    btWent?.addEventListener("click", () => {
+      cbWent.checked = !cbWent.checked;
+      btWent.classList.toggle("on", cbWent.checked);
+    });
+
+    btRet?.addEventListener("click", () => {
+      cbRet.checked = !cbRet.checked;
+      btRet.classList.toggle("on", cbRet.checked);
+    });
+  });
+
 
   function addGuestToList(name) {
     const slug = slugGuest(name);
@@ -467,19 +586,28 @@ function openLaunchModal(preset = null) {
     const row = document.createElement("div");
     row.className = "pickRow";
     row.dataset.pid = pid;
+
     row.innerHTML = `
       <div class="pickLeft">
-        <div class="avatar">${avatarMarkup(name, "")}</div>
-        <div>
-          <div style="font-weight:800;">${name}</div>
-          <div style="font-size:12px; color:var(--muted);">${pid}</div>
+        ${avatarMarkup(name, "")}
+        <div class="pickNames">
+          <div class="pickName">${escHtml(name)}</div>
+          <div class="pickId">${escHtml(pid)}</div>
         </div>
       </div>
 
-      <label><input type="checkbox" class="cbWent" checked /> FOI</label>
-      <label class="chkReturn"><input type="checkbox" class="cbRet" checked /> VOLTOU</label>
+      <div class="toggles">
+        <input class="cbWent srOnly" type="checkbox" checked>
+        <button type="button" class="tglBtn tglWent on">FOI</button>
+
+        <input class="cbRet srOnly" type="checkbox" checked>
+        <button type="button" class="tglBtn tglRet on">VOLTOU</button>
+      </div>
     `;
     pickListEl.appendChild(row);
+    wireToggleRow(row);
+
+
   }
 
   document.getElementById("btnAddGuest")?.addEventListener("click", () => {
