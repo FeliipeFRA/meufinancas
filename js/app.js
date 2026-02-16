@@ -16,10 +16,11 @@ const CAR_PHOTOS = {
 const MIN_START_ISO = "2026-02-02";
 
 /* =========================
-   Consts
+   Consts / UI
 ========================= */
 const PARKING_FEE_PER_PERSON = 20; // R$20 por pessoa (5 padrão) = R$100 mês
 const FIXED_PARKING_RECEIVER_NAME = "Felipe Ferreira";
+const UI_BASE_FONT_SIZE_PX = 18;
 
 /* =========================
    Utils
@@ -53,6 +54,10 @@ function weekdayLongPt(iso) {
     "Sábado",
   ];
   return names[d.getDay()] || "";
+}
+
+function weekdayUpperPt(iso) {
+  return weekdayLongPt(iso).toUpperCase();
 }
 
 function getMonday(d) {
@@ -454,21 +459,65 @@ async function renderWeek(startISO) {
 /* =========================
    Modal Lançar Dia
 ========================= */
+function syncPickRowUI(row) {
+  const cbWent = row.querySelector(".cbWent");
+  const cbRet = row.querySelector(".cbRet");
+  const btWent = row.querySelector(".tglWent");
+  const btRet = row.querySelector(".tglRet");
+
+  const wentOn = !!cbWent?.checked;
+  const retOn = !!cbRet?.checked;
+
+  btWent?.classList.toggle("on", wentOn);
+  btRet?.classList.toggle("on", retOn);
+
+  const bothOff = !wentOn && !retOn;
+
+  // highlight vermelho leve quando ambos desmarcados
+  row.style.background = bothOff ? "rgba(255, 0, 0, 0.08)" : "";
+  row.style.borderColor = bothOff ? "rgba(255, 0, 0, 0.25)" : "";
+}
+
 function wireToggleRow(row) {
   const cbWent = row.querySelector(".cbWent");
   const cbRet = row.querySelector(".cbRet");
   const btWent = row.querySelector(".tglWent");
   const btRet = row.querySelector(".tglRet");
 
-  btWent?.addEventListener("click", () => {
-    cbWent.checked = !cbWent.checked;
-    btWent.classList.toggle("on", cbWent.checked);
+  // clique na linha: alterna (tudo off) <-> (FOI+VOLTOU on)
+  row.addEventListener("click", (e) => {
+    // não disparar quando clicar nos botões
+    if (e.target?.closest?.(".tglBtn")) return;
+
+    const wentOn = !!cbWent?.checked;
+    const retOn = !!cbRet?.checked;
+
+    if (!wentOn && !retOn) {
+      cbWent.checked = true;
+      cbRet.checked = true;
+    } else {
+      cbWent.checked = false;
+      cbRet.checked = false;
+    }
+
+    syncPickRowUI(row);
   });
 
-  btRet?.addEventListener("click", () => {
-    cbRet.checked = !cbRet.checked;
-    btRet.classList.toggle("on", cbRet.checked);
+  // botões individuais continuam funcionando
+  btWent?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    cbWent.checked = !cbWent.checked;
+    syncPickRowUI(row);
   });
+
+  btRet?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    cbRet.checked = !cbRet.checked;
+    syncPickRowUI(row);
+  });
+
+  // estado inicial (caso venha preset com tudo off)
+  syncPickRowUI(row);
 }
 
 async function openLaunchModal(preset = null) {
@@ -511,8 +560,12 @@ async function openLaunchModal(preset = null) {
     })
     .join("");
 
+  // 09/02 (SEGUNDA-FEIRA)
   const dateOptions = dates
-    .map((d) => `<option value="${d}" ${d === presetDate ? "selected" : ""}>${brDate(d)}</option>`)
+    .map((d) => {
+      const label = `${brDate(d)} (${weekdayUpperPt(d)})`;
+      return `<option value="${d}" ${d === presetDate ? "selected" : ""}>${label}</option>`;
+    })
     .join("");
 
   const peopleRows = (CONFIG.people || [])
@@ -520,12 +573,11 @@ async function openLaunchModal(preset = null) {
       const wentChecked = presetWent.has(p.personId);
       const retChecked = presetRet.has(p.personId);
       return `
-        <div class="pickRow" data-pid="${escHtml(p.personId)}">
+        <div class="pickRow" data-pid="${escHtml(p.personId)}" style="cursor:pointer;">
           <div class="pickLeft">
             ${avatarMarkup(p.name, p.photoUrl)}
             <div class="pickNames">
-              <div class="pickName">${escHtml(p.name)}</div>
-              <div class="pickId">${escHtml(p.personId)}</div>
+              <div class="pickName" style="font-size:16px; font-weight:900;">${escHtml(p.name)}</div>
             </div>
           </div>
 
@@ -541,7 +593,9 @@ async function openLaunchModal(preset = null) {
     })
     .join("");
 
-  openModal(preset ? "Editar lançamento" : "Lançar dia", `
+  openModal(
+    preset ? "Editar lançamento" : "Lançar dia",
+    `
     <div class="formGrid">
 
       <div>
@@ -572,7 +626,7 @@ async function openLaunchModal(preset = null) {
         Sobrescrever se já existir
       </label>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
         <button id="btnSaveTrip" class="btn btnPrimary" type="button">
           <i class="bi bi-check2-circle"></i> Salvar
         </button>
@@ -583,7 +637,8 @@ async function openLaunchModal(preset = null) {
 
       <div id="modalStatus" class="smallStatus"></div>
     </div>
-  `);
+  `
+  );
 
   const pickListEl = document.getElementById("pickList");
   const carPickerEl = document.getElementById("carPicker");
@@ -594,8 +649,10 @@ async function openLaunchModal(preset = null) {
     if (modalStatusEl) modalStatusEl.textContent = m || "";
   };
 
+  // binds das pessoas (linha clicável + botões individuais)
   pickListEl?.querySelectorAll(".pickRow").forEach(wireToggleRow);
 
+  // bind seleção de carro
   carPickerEl?.querySelectorAll(".carOpt").forEach((btn) => {
     btn.addEventListener("click", () => {
       carPickerEl.querySelectorAll(".carOpt").forEach((b) => b.classList.remove("on"));
@@ -614,13 +671,13 @@ async function openLaunchModal(preset = null) {
     const row = document.createElement("div");
     row.className = "pickRow";
     row.dataset.pid = pid;
+    row.style.cursor = "pointer";
 
     row.innerHTML = `
       <div class="pickLeft">
         ${avatarMarkup(name, "")}
         <div class="pickNames">
-          <div class="pickName">${escHtml(name)}</div>
-          <div class="pickId">${escHtml(pid)}</div>
+          <div class="pickName" style="font-size:16px; font-weight:900;">${escHtml(name)}</div>
         </div>
       </div>
 
@@ -831,14 +888,10 @@ async function openStatementModal() {
     netLedger(ledger);
 
     const lines = [];
-    lines.push(`PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.`);
+    lines.push(`*PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.*`);
 
     if (parkingEligible && includeMonthlyParking) {
-      lines.push(
-        `Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(
-          2
-        )} por pessoa (5 padrão).`
-      );
+      lines.push(`Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa (5 padrão).`);
       lines.push(`Recebedor estacionamento: ${driverLabel(parkingPayeeId)}.`);
     }
 
@@ -861,7 +914,7 @@ async function openStatementModal() {
       });
 
     lines.push("");
-    lines.push("CHAVES PIX:");
+    lines.push("*CHAVES PIX:*");
     lines.push("FELIPE FERREIRA");
     lines.push("16994182682 | Felipe Ferreira (PICPAY)");
     lines.push("CRISTHIAN");
@@ -882,9 +935,7 @@ async function openStatementModal() {
         parkingEligible
           ? `<label style="display:flex; gap:10px; align-items:center; font-weight:800;">
                <input id="chkMonthlyParking" type="checkbox" ${includeMonthlyParking ? "checked" : ""}>
-               Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(
-              2
-            )} por pessoa (recebedor: ${escHtml(FIXED_PARKING_RECEIVER_NAME)})
+               Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa
              </label>`
           : ""
       }
@@ -928,6 +979,9 @@ async function openStatementModal() {
    Init
 ========================= */
 function init() {
+  // fonte maior no app inteiro
+  document.documentElement.style.fontSize = `${UI_BASE_FONT_SIZE_PX}px`;
+
   $("modalClose")?.addEventListener("click", closeModal);
   $("modalBackdrop")?.addEventListener("click", closeModal);
 
