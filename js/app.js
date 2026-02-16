@@ -23,6 +23,20 @@ function setStatus(msg) {
   if (el) el.textContent = msg || "";
 }
 
+const PARKING_FEE_PER_DAY = 20;
+
+/* semana é "primeira do mês" se ela contém o dia 1 (mesmo que comece no mês anterior) */
+function isFirstWeekOfMonth(startISO) {
+  const start = new Date(`${startISO}T00:00:00`);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (d.getDate() === 1) return true;
+  }
+  return false;
+}
+
+
 function toISODate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
