@@ -1,36 +1,40 @@
+/* app.css (LIMPO) — tema verde + modal sem vazamento lateral
+   Observação: este CSS assume o HTML que você mandou e o modal gerado pelo seu JS (carPicker, pickList, tglBtn etc.)
+*/
+
 :root{
-  --red:#b91c1c;
-  --gold:#d4af37;
+  /* === TEMA (verde no lugar do vermelho / verde claro no lugar do dourado) === */
+  --primary:#008200;           /* antigo --red */
+  --primaryDark:#006600;       /* para gradientes/sombras */
+  --accent:#bff0bf;            /* antigo --gold (verde claro) */
+
   --bg:#ffffff;
+  --card:#ffffff;
   --text:#111827;
   --muted:#6b7280;
-  --card:#ffffff;
   --border:#e5e7eb;
+
+  --soft: rgba(0,130,0,.10);
+  --ring: rgba(0,130,0,.18);
 }
 
 *{ box-sizing:border-box; }
-
 html, body{ height:100%; }
-
 body{
   margin:0;
-  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family:"Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   background:var(--bg);
   color:var(--text);
-  overflow-x:hidden; /* evita qualquer “estouro” horizontal geral */
 }
 
-button, input, select, textarea{ font-family: inherit; }
+button, input, select, textarea{ font-family:inherit; }
 
-/* =========================
-   Topbar
-========================= */
+/* ===== Topbar ===== */
 .topbar{
-  background: linear-gradient(90deg, var(--red), #8a1111);
+  background: linear-gradient(90deg, var(--primary), var(--primaryDark));
   color:#fff;
-  border-bottom: 3px solid var(--gold);
+  border-bottom: 3px solid var(--accent);
 }
-
 .topbarInner{
   max-width: 920px;
   margin: 0 auto;
@@ -38,13 +42,11 @@ button, input, select, textarea{ font-family: inherit; }
   display:flex;
   align-items:center;
 }
-
 .brand{
   display:flex;
   align-items:center;
   gap:12px;
 }
-
 .brandLogo{
   width: 52px;
   height: 52px;
@@ -53,20 +55,10 @@ button, input, select, textarea{ font-family: inherit; }
   border-radius: 0;
   padding: 0;
 }
+.brandTitle{ font-weight:800; letter-spacing:.2px; }
+.brandSub{ font-size:12px; opacity:.9; }
 
-.brandTitle{
-  font-weight:800;
-  letter-spacing:0.2px;
-}
-
-.brandSub{
-  font-size:12px;
-  opacity:0.9;
-}
-
-/* =========================
-   Layout
-========================= */
+/* ===== Layout geral ===== */
 .container{
   max-width: 920px;
   margin: 0 auto;
@@ -87,14 +79,9 @@ button, input, select, textarea{ font-family: inherit; }
   gap:12px;
   flex-wrap:wrap;
 }
-
-h2{
-  margin:0;
-  font-size:16px;
-}
+h2{ margin:0; font-size:16px; }
 
 .muted{ color:var(--muted); }
-
 .pre{
   margin-top:12px;
   padding:10px;
@@ -105,9 +92,38 @@ h2{
   word-break:break-word;
 }
 
-/* =========================
-   Buttons / Inputs
-========================= */
+/* ===== Semana ===== */
+.weekPicker{
+  display:grid;
+  gap:6px;
+  margin: 14px 0 10px;
+}
+.weekPickerLabel{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+.select{
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+
+/* ===== Ações topo ===== */
+.actionsTop{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin: 14px 0;
+}
+@media (max-width: 520px){
+  .actionsTop{ grid-template-columns:1fr; }
+}
+
+/* ===== Botões ===== */
 .btn{
   padding:10px 12px;
   border-radius:12px;
@@ -116,97 +132,38 @@ h2{
   color:var(--text);
   cursor:pointer;
 }
-
-.btn:active{ transform: translateY(1px); }
-
-.btnIcon{
-  width: 44px;
-  height: 44px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius: 12px;
-}
-
-.btnIcon i{ font-size: 18px; }
-
 .btnBig{
-  padding: 14px 14px;
-  font-weight: 800;
-  font-size: 14px;
-  border-radius: 14px;
-
+  padding:14px 14px;
+  font-weight:800;
+  font-size:14px;
+  border-radius:14px;
   display:flex;
   align-items:center;
   justify-content:center;
   gap:10px;
 }
+.btnIcon{
+  width:44px;
+  height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+}
+.btnIcon i{ font-size:18px; }
 
 .btnPrimary{
-  background: var(--red);
-  border-color: var(--red);
-  color: #fff;
+  background:var(--primary);
+  border-color:var(--primary);
+  color:#fff;
 }
-
 .btnGhost{
-  background: #fff;
-  border: 2px solid var(--red);
-  color: var(--red);
+  background:#fff;
+  border:2px solid var(--primary);
+  color:var(--primary);
 }
 
-.select,
-.input{
-  width:100%;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-  font-weight: 600;
-  outline: none;
-}
-
-.input{
-  padding: 14px 14px;
-}
-
-.input:focus,
-.select:focus{
-  border-color: rgba(185,28,28,.55);
-  box-shadow: 0 0 0 4px rgba(185,28,28,.12);
-}
-
-textarea.input{
-  resize: none;
-  line-height: 1.25;
-}
-
-.weekPicker{
-  display:grid;
-  gap:6px;
-  margin: 14px 0 10px;
-}
-
-.weekPickerLabel{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.actionsTop{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 14px 0;
-}
-
-@media (max-width: 520px){
-  .actionsTop{ grid-template-columns: 1fr; }
-}
-
-/* =========================
-   Semana (carrossel)
-========================= */
+/* ===== Lista de dias (carrossel horizontal) ===== */
 .weekWrap{
   margin-top:12px;
   display:flex;
@@ -216,34 +173,28 @@ textarea.input{
   scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
 }
-
 .dayCard{
   flex:0 0 auto;
-  min-width: 230px;
+  min-width: 260px;
+  max-width: 86vw;
   scroll-snap-align:start;
 
-  background:#fff;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
+  background:#fff;
 }
-
 .dayHeader{
   padding:10px 12px;
-  background:#fff7ed;
+  background:#f0fff0; /* leve verde claro */
   border-bottom:1px solid var(--border);
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:10px;
 }
-
 .dayTitle{ font-weight:800; }
-
-.dayMeta{
-  font-size:12px;
-  color:var(--muted);
-}
+.dayMeta{ font-size:12px; color:var(--muted); }
 
 /* Linha do carro no dia */
 .tripRow{
@@ -252,51 +203,19 @@ textarea.input{
   gap:10px;
   padding:12px;
 }
-
-.tripRow + .tripRow{
-  border-top:1px solid var(--border);
-}
-
 .tripMeta{
   display:flex;
   gap:10px;
   align-items:center;
   min-width:0;
 }
-
-.carPhoto{
-  width:54px;
-  height:40px;
-  border-radius:10px;
-  object-fit:cover;
-  border:1px solid var(--border);
-  background:#f3f4f6;
-}
-
-.driverMini{
-  width:34px;
-  height:34px;
-  border-radius:999px;
-  object-fit:cover;
-  border:2px solid var(--gold);
-  background:#f3f4f6;
-  flex:0 0 auto;
-}
-
 .metaText{
   display:flex;
   flex-direction:column;
   line-height:1.1;
   min-width:0;
 }
-
-.metaText .carName{
-  font-weight:800;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
+.metaText .carName{ font-weight:800; }
 .metaText .driverName{
   font-size:12px;
   color:var(--muted);
@@ -310,19 +229,34 @@ textarea.input{
   padding-left:10px;
   min-width:0;
 }
-
 .colLabel{
   font-size:12px;
   color:var(--muted);
   margin-bottom:6px;
 }
-
 .avatars{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
 }
 
+/* Card visual */
+.carPhoto{
+  width:54px;
+  height:40px;
+  border-radius:10px;
+  object-fit:cover;
+  border:1px solid var(--border);
+  background:#f3f4f6;
+}
+.driverMini{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  object-fit:cover;
+  border:2px solid var(--accent);
+  background:#f3f4f6;
+}
 .avatar{
   width:34px;
   height:34px;
@@ -337,12 +271,11 @@ textarea.input{
   font-size:12px;
   color:#374151;
 }
+img.avatar{ object-fit:cover; }
 
-/* Mobile (cards de dia continuam no carrossel; a tripRow vira 1 coluna) */
+/* Mobile: tripRow sempre “empilha” */
 @media (max-width: 720px){
-  .tripRow{
-    grid-template-columns: 1fr;
-  }
+  .tripRow{ grid-template-columns: 1fr; }
   .col{
     border-left:none;
     padding-left:0;
@@ -351,9 +284,9 @@ textarea.input{
   }
 }
 
-/* =========================
-   Modal
-========================= */
+/* ===== Modal ===== */
+.hidden{ display:none !important; }
+
 .modalBackdrop{
   position:fixed;
   inset:0;
@@ -377,12 +310,13 @@ textarea.input{
   display:flex;
   flex-direction:column;
 
-  overflow:hidden; /* impede scroll horizontal no container */
+  /* importante: nunca permitir rolagem horizontal no modal inteiro */
+  overflow:hidden;
 }
 
 .modalHeader{
   padding:12px;
-  background: #fff7ed;
+  background: #f0fff0;
   border-bottom:1px solid var(--border);
   display:flex;
   justify-content:space-between;
@@ -393,38 +327,21 @@ textarea.input{
   top: 0;
   z-index: 2;
 }
-
 .modalTitle{ font-weight:800; }
 
 .modalBody{
   padding:14px;
+  flex:1;
   overflow-y:auto;
-  overflow-x:hidden; /* scroll horizontal proibido no body */
+  overflow-x:hidden;            /* impede scrollbar lateral */
   -webkit-overflow-scrolling: touch;
+  min-width:0;
 }
 
-/* Regras anti-estouro dentro do modal */
-#modal .formGrid,
-#modal .pickList,
-#modal .pickRow{
-  max-width: 100%;
-}
-
-#modal .pickLeft,
-#modal .pickNames,
-#modal .carOptMeta{
-  min-width: 0;
-}
-
-.hidden{ display:none !important; }
-
-/* Modal mobile: bottom-sheet */
+/* Mobile modal “bottom sheet” */
 @media (max-width: 520px){
   .modal{
-    left:0;
-    right:0;
-    bottom:0;
-    top:auto;
+    left:0; right:0; bottom:0; top:auto;
     transform:none;
     width:100vw;
     border-radius:16px 16px 0 0;
@@ -432,140 +349,158 @@ textarea.input{
   }
 }
 
-/* =========================
-   Modal Launch (Lançar dia)
-========================= */
-.fieldLabel{
-  font-size:12px;
-  color:var(--muted);
-  font-weight:800;
-  margin: 2px 0 6px;
-}
-
-/* Grid do form no modal */
+/* ===== Form / Inputs no modal ===== */
 .formGrid{
   display:grid;
-  gap: 12px;
-}
-
-/* Carrossel de carros: único scroll horizontal */
-.carPicker{
-  display:flex;
-  gap: 12px;
-  overflow-x:auto;   /* scroll horizontal só aqui */
-  overflow-y:hidden;
-  padding: 8px 4px 10px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  max-width:100%;
-}
-
-/* remove “barriga” de flex em alguns browsers */
-.carPicker > *{ scroll-snap-align: start; }
-
-.carOpt{
-  flex: 0 0 auto;
-  width: 260px;      /* desktop */
-  max-width: 78vw;   /* mobile */
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 14px;
-  padding: 10px;
-  cursor: pointer;
-  text-align: left;
-
-  display:grid;
-  grid-template-columns: 64px 1fr;
-  gap: 10px;
-  align-items:center;
-
-  /* botão não “estoura” */
-  min-width: 210px;
-}
-
-.carOpt.on{
-  border-color: rgba(185,28,28,.55);
-  box-shadow: 0 0 0 4px rgba(185,28,28,.10);
-}
-
-.carOptImg{
-  width: 64px;
-  height: 46px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #f3f4f6;
-}
-
-.carOptMeta{ min-width:0; }
-
-.carOptTitle{
-  font-weight: 900;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.carOptSub{
-  display:flex;
-  align-items:center;
-  gap: 8px;
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 12px;
+  gap:12px;
   min-width:0;
 }
 
-.carOptSub span{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.fieldLabel{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+  margin: 2px 0 6px;
 }
 
-/* Lista de pessoas */
-.pickList{
+.input{
+  width:100%;
+  padding:14px 14px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  font-weight:600;
+  outline:none;
+  min-width:0;
+}
+.input:focus{
+  border-color: rgba(0,130,0,.55);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+textarea.input{
+  resize:none;
+  line-height:1.25;
+}
+
+/* ===== Carrossel de carros (único scroll horizontal) ===== */
+.carPicker{
+  display:flex;
+  gap:12px;
+
+  overflow-x:auto;     /* scroll só aqui */
+  overflow-y:hidden;
+
+  padding: 6px 2px 10px;
+  max-width: 100%;
+
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  /* ajuda MUITO no mobile (evita o swipe virar scroll vertical do modal) */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.carOpt{
+  flex:0 0 auto;
+  width: min(300px, 82vw);
+  scroll-snap-align: start;
+
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:16px;
+  padding:10px;
+
   display:grid;
+  grid-template-columns: 64px minmax(0,1fr);
   gap:10px;
+  align-items:center;
+
+  cursor:pointer;
+  text-align:left;
+}
+.carOpt.on{
+  border-color: rgba(0,130,0,.55);
+  box-shadow: 0 0 0 4px var(--soft);
+}
+
+.carOptImg{
+  width:64px;
+  height:46px;
+  border-radius:12px;
+  object-fit:cover;
+  border:1px solid var(--border);
+  background:#f3f4f6;
+}
+.carOptMeta{ min-width:0; }
+.carOptTitle{
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.carOptSub{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:6px;
+  font-size:12px;
+  color:var(--muted);
+  min-width:0;
+}
+.carOptSub span{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ===== Lista de pessoas (sem vazar para o lado) ===== */
+.pickList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-width:0;
 }
 
 .pickRow{
-  display:flex;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:10px;
+  background:#fff;
+
+  /* grid evita “vazar” e garante que FOI/VOLTOU apareçam */
+  display:grid;
+  grid-template-columns: minmax(0,1fr) auto;
   align-items:center;
-  justify-content:space-between;
   gap:10px;
 
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: #fff;
+  min-width:0;
 }
 
 .pickLeft{
   display:flex;
   align-items:center;
   gap:10px;
-  flex:1;
   min-width:0;
 }
 
 .pickNames{
+  min-width:0;
   display:flex;
   flex-direction:column;
   line-height:1.1;
-  min-width:0;
 }
 
 .pickName{
-  font-weight: 900;
+  font-weight:900;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-
 .pickId{
-  font-size: 12px;
-  color: var(--muted);
+  font-size:12px;
+  color:var(--muted);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -577,48 +512,51 @@ textarea.input{
   flex:0 0 auto;
 }
 
+/* Botões FOI/VOLTOU */
 .tglBtn{
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1.5px solid var(--red);
-  background: #fff;
-  color: var(--red);
-  font-weight: 900;
-  cursor: pointer;
+  padding:10px 12px;
+  border-radius:999px;
+  border:1.5px solid var(--primary);
+  background:#fff;
+  color:var(--primary);
+  font-weight:900;
+  cursor:pointer;
+}
+.tglBtn.on{
+  background: var(--primary);
+  color:#fff;
 }
 
-.tglBtn.on{
-  background: var(--red);
-  color: #fff;
+/* Mobile: se apertar, joga FOI/VOLTOU pra baixo (NUNCA some pra direita) */
+@media (max-width: 420px){
+  .pickRow{ grid-template-columns: 1fr; }
+  .toggles{ justify-content:flex-end; }
+  .tglBtn{ padding:9px 10px; }
 }
 
 /* checkbox invisível */
 .srOnly{
-  position: absolute !important;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
+  position:absolute !important;
+  width:1px; height:1px;
+  padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0);
+  white-space:nowrap; border:0;
 }
 
-/* status pequeno no modal */
+/* ===== Proteções anti-vazamento dentro do modal ===== */
+#modal .formGrid,
+#modal .carPicker,
+#modal .pickList,
+#modal .pickRow,
+#modal .pickLeft,
+#modal .pickNames,
+#modal .carOptMeta{
+  max-width:100%;
+  min-width:0;
+}
+
+/* Status pequeno no modal (se usar) */
 .smallStatus{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-/* Mobile bem estreito: empilha botões FOI/VOLTOU */
-@media (max-width: 420px){
-  .pickRow{
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .toggles{
-    justify-content: flex-end;
-  }
+  font-size:12px;
+  color:var(--muted);
 }
