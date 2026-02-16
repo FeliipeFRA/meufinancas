@@ -679,8 +679,10 @@ textarea.input{
 
 .modalBody{
   padding: 14px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
 
 @media (max-width: 520px){
   .modal{
@@ -794,3 +796,37 @@ textarea.input{
 
 
 button, input, select, textarea { font-family: inherit; }
+
+/* OVERRIDE FINAL: modal nunca deve ter rolagem horizontal */
+#modal{
+  overflow: hidden !important;
+}
+
+#modal .modalBody{
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* garante que nada dentro do modal “estoure” largura */
+#modal .formGrid,
+#modal .pickList,
+#modal .pickRow{
+  max-width: 100%;
+}
+
+#modal .pickLeft,
+#modal .pickNames,
+#modal .carOptMeta{
+  min-width: 0;
+}
+
+/* mobile: se apertar, joga botões FOI/VOLTOU pra baixo */
+@media (max-width: 420px){
+  #modal .pickRow{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #modal .toggles{
+    justify-content: flex-end;
+  }
+}

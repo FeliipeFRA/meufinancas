@@ -15,29 +15,9 @@ const CAR_PHOTOS = {
 
 const MIN_START_ISO = "2026-02-02";
 
-function buildWeeksFromMin(minStartISO) {
-  const minMon = getMonday(new Date(`${minStartISO}T00:00:00`));
-  const curMon = getMonday(new Date());
-
-  const out = [];
-  for (let d = new Date(curMon); d >= minMon; d.setDate(d.getDate() - 7)) {
-    const start = new Date(d);
-    const end = new Date(d);
-    end.setDate(end.getDate() + 4);
-
-    const startISO = toISODate(start);
-    const endISO = toISODate(end);
-
-    out.push({
-      startISO,
-      endISO,
-      label: `${brDate(startISO)} a ${brDate(endISO)}`
-    });
-  }
-  return out;
-}
-
-
+/* =========================
+   Utils
+========================= */
 function setStatus(msg) {
   const el = $("status");
   if (el) el.textContent = msg || "";
@@ -64,19 +44,40 @@ function weekdayLongPt(iso) {
     "Quarta-feira",
     "Quinta-feira",
     "Sexta-feira",
-    "Sábado"
+    "Sábado",
   ];
   return names[d.getDay()] || "";
 }
 
-
 function getMonday(d) {
   const x = new Date(d);
   const day = x.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
+  const diff = day === 0 ? -6 : 1 - day;
   x.setDate(x.getDate() + diff);
   x.setHours(0, 0, 0, 0);
   return x;
+}
+
+function buildWeeksFromMin(minStartISO) {
+  const minMon = getMonday(new Date(`${minStartISO}T00:00:00`));
+  const curMon = getMonday(new Date());
+
+  const out = [];
+  for (let d = new Date(curMon); d >= minMon; d.setDate(d.getDate() - 7)) {
+    const start = new Date(d);
+    const end = new Date(d);
+    end.setDate(end.getDate() + 4);
+
+    const startISO = toISODate(start);
+    const endISO = toISODate(end);
+
+    out.push({
+      startISO,
+      endISO,
+      label: `${brDate(startISO)} a ${brDate(endISO)}`,
+    });
+  }
+  return out;
 }
 
 function weekDatesFromStartISO(startISO) {
@@ -90,24 +91,6 @@ function weekDatesFromStartISO(startISO) {
   return out;
 }
 
-function buildLastWeeks(count = 12) {
-  const monday = getMonday(new Date());
-  const weeks = [];
-  for (let i = 0; i < count; i++) {
-    const start = new Date(monday);
-    start.setDate(monday.getDate() - i * 7);
-
-    const end = new Date(start);
-    end.setDate(start.getDate() + 4);
-
-    const startISO = toISODate(start);
-    const endISO = toISODate(end);
-
-    weeks.push({ startISO, endISO, label: `${brDate(startISO)} a ${brDate(endISO)}` });
-  }
-  return weeks;
-}
-
 function setHeaderWeekLabel(startISO, endISO) {
   const brandSub = $("brandSub");
   if (brandSub) brandSub.textContent = `Semana: ${brDate(startISO)} a ${brDate(endISO)}`;
@@ -115,18 +98,21 @@ function setHeaderWeekLabel(startISO, endISO) {
 
 function peopleMap() {
   const m = new Map();
-  (CONFIG?.people || []).forEach(p => m.set(p.personId, p));
+  (CONFIG?.people || []).forEach((p) => m.set(p.personId, p));
   return m;
 }
 
 function carsMap() {
   const m = new Map();
-  (CONFIG?.cars || []).forEach(c => m.set(c.carId, c));
+  (CONFIG?.cars || []).forEach((c) => m.set(c.carId, c));
   return m;
 }
 
 function initials(name) {
-  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   const a = parts[0]?.[0] || "";
   const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (a + b).toUpperCase();
@@ -160,13 +146,12 @@ function driverMiniMarkup(personId) {
   return `<div class="driverMini" title="${escHtml(name)}">${initials(name)}</div>`;
 }
 
-
-
 function slugGuest(name) {
   return String(name || "")
     .trim()
     .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 }
@@ -174,8 +159,8 @@ function slugGuest(name) {
 function makeAvatar(personId) {
   const pm = peopleMap();
   const isGuest = String(personId).startsWith("guest#");
-  const displayName = isGuest ? personId.replace("guest#", "") : (pm.get(personId)?.name || personId);
-  const photoUrl = isGuest ? "" : (pm.get(personId)?.photoUrl || "");
+  const displayName = isGuest ? personId.replace("guest#", "") : pm.get(personId)?.name || personId;
+  const photoUrl = isGuest ? "" : pm.get(personId)?.photoUrl || "";
 
   if (photoUrl) {
     const img = document.createElement("img");
@@ -218,7 +203,9 @@ function makeDriverMini(driverPersonId) {
   return div;
 }
 
-/* Modal */
+/* =========================
+   Modal
+========================= */
 function openModal(title, html) {
   $("modalTitle").textContent = title;
   $("modalBody").innerHTML = html;
@@ -226,7 +213,6 @@ function openModal(title, html) {
   $("modalBackdrop").classList.remove("hidden");
   $("modal").classList.remove("hidden");
 
-  // trava scroll enquanto modal está aberto
   document.body.style.overflow = "hidden";
 }
 
@@ -235,14 +221,16 @@ function closeModal() {
   $("modal").classList.add("hidden");
   $("modalBody").innerHTML = "";
 
-  // destrava scroll
   document.body.style.overflow = "";
 }
 
-/* API */
+/* =========================
+   API
+========================= */
 async function loadConfig() {
   CONFIG = await apiRequest("/config");
 }
+
 async function loadTrip(carId, dateISO) {
   try {
     return await apiRequest(`/trip/${encodeURIComponent(carId)}/${encodeURIComponent(dateISO)}`);
@@ -252,7 +240,9 @@ async function loadTrip(carId, dateISO) {
   }
 }
 
-/* Render semana selecionada */
+/* =========================
+   Render Semana
+========================= */
 async function renderWeek(startISO) {
   const wrap = $("weekWrap");
   if (!wrap) return;
@@ -262,26 +252,27 @@ async function renderWeek(startISO) {
 
   if (!CONFIG) await loadConfig();
 
-  const weeks = buildWeeksFromMin(MIN_START_ISO)
-  const week = weeks.find(w => w.startISO === startISO) || weeks[0];
+  const weeks = buildWeeksFromMin(MIN_START_ISO);
+  const week = weeks.find((w) => w.startISO === startISO) || weeks[0];
+
   selectedWeekStartISO = week.startISO;
   setHeaderWeekLabel(week.startISO, week.endISO);
 
-  const dates = weekDatesFromStartISO(week.startISO).map(x => x.iso);
-  const cars = (CONFIG.cars || []).map(c => c.carId);
+  const dates = weekDatesFromStartISO(week.startISO).map((x) => x.iso);
+  const cars = (CONFIG.cars || []).map((c) => c.carId);
 
   const tasks = [];
   for (const iso of dates) {
     for (const carId of cars) {
-      tasks.push(loadTrip(carId, iso).then(trip => ({ dateISO: iso, carId, trip })));
+      tasks.push(loadTrip(carId, iso).then((trip) => ({ dateISO: iso, carId, trip })));
     }
   }
 
   const results = await Promise.all(tasks);
-  currentWeekCache = results.filter(r => r.trip);
+  currentWeekCache = results.filter((r) => r.trip);
 
   const byDay = new Map();
-  results.forEach(r => {
+  results.forEach((r) => {
     if (!byDay.has(r.dateISO)) byDay.set(r.dateISO, []);
     if (r.trip) byDay.get(r.dateISO).push(r);
   });
@@ -300,10 +291,9 @@ async function renderWeek(startISO) {
     const header = document.createElement("div");
     header.className = "dayHeader";
     header.innerHTML = `
-  <div class="dayTitle">${weekdayLongPt(iso)} • ${brDate(iso)}</div>
-  <div class="dayMeta">${dayTrips.length ? `${dayTrips.length} lançamento(s)` : "sem lançamentos"}</div>
-`;
-
+      <div class="dayTitle">${weekdayLongPt(iso)} • ${brDate(iso)}</div>
+      <div class="dayMeta">${dayTrips.length ? `${dayTrips.length} lançamento(s)` : "sem lançamentos"}</div>
+    `;
     dayCard.appendChild(header);
 
     if (!dayTrips.length) {
@@ -351,7 +341,7 @@ async function renderWeek(startISO) {
       colWent.innerHTML = `<div class="colLabel">FOI</div>`;
       const avWent = document.createElement("div");
       avWent.className = "avatars";
-      (trip.went || []).forEach(pid => avWent.appendChild(makeAvatar(pid)));
+      (trip.went || []).forEach((pid) => avWent.appendChild(makeAvatar(pid)));
       colWent.appendChild(avWent);
 
       const colRet = document.createElement("div");
@@ -359,7 +349,7 @@ async function renderWeek(startISO) {
       colRet.innerHTML = `<div class="colLabel">VOLTOU</div>`;
       const avRet = document.createElement("div");
       avRet.className = "avatars";
-      (trip.returned || []).forEach(pid => avRet.appendChild(makeAvatar(pid)));
+      (trip.returned || []).forEach((pid) => avRet.appendChild(makeAvatar(pid)));
       colRet.appendChild(avRet);
 
       row.appendChild(meta);
@@ -367,41 +357,44 @@ async function renderWeek(startISO) {
       row.appendChild(colRet);
 
       row.onclick = () => {
-        const wentHtml = (trip.went || []).map(pid => makeAvatar(pid).outerHTML).join("");
-        const retHtml = (trip.returned || []).map(pid => makeAvatar(pid).outerHTML).join("");
+        const wentHtml = (trip.went || []).map((pid) => makeAvatar(pid).outerHTML).join("");
+        const retHtml = (trip.returned || []).map((pid) => makeAvatar(pid).outerHTML).join("");
 
         openModal(
           `${car?.label || carId} • ${weekdayLongPt(iso)} • ${brDate(iso)}`,
           `
-      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-        <img class="carPhoto" src="${CAR_PHOTOS[carId] || "./assets/cars/placeholder.png"}" alt="">
-        ${makeDriverMini(driverId).outerHTML}
-        <div>
-          <div style="font-weight:900;">${car?.label || carId}</div>
-          <div class="muted" style="font-size:12px;">Motorista: ${driverName}</div>
-        </div>
-      </div>
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+              <img class="carPhoto" src="${CAR_PHOTOS[carId] || "./assets/cars/placeholder.png"}" alt="">
+              ${makeDriverMini(driverId).outerHTML}
+              <div>
+                <div style="font-weight:900;">${car?.label || carId}</div>
+                <div class="muted" style="font-size:12px;">Motorista: ${driverName}</div>
+              </div>
+            </div>
 
-      <div class="fieldLabel">FOI</div>
-      <div class="avatars" style="margin-bottom:12px;">${wentHtml || `<span class="muted">ninguém</span>`}</div>
+            <div class="fieldLabel">FOI</div>
+            <div class="avatars" style="margin-bottom:12px;">${wentHtml || `<span class="muted">ninguém</span>`}</div>
 
-      <div class="fieldLabel">VOLTOU</div>
-      <div class="avatars" style="margin-bottom:14px;">${retHtml || `<span class="muted">ninguém</span>`}</div>
+            <div class="fieldLabel">VOLTOU</div>
+            <div class="avatars" style="margin-bottom:14px;">${retHtml || `<span class="muted">ninguém</span>`}</div>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btnPrimary" id="btnEditTrip" type="button">
-          <i class="bi bi-pencil-square"></i> Editar
-        </button>
-        <button class="btn" id="btnCloseDetails" type="button">
-          <i class="bi bi-x-circle"></i> Fechar
-        </button>
-      </div>
-    `
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn btnPrimary" id="btnEditTrip" type="button">
+                <i class="bi bi-pencil-square"></i> Editar
+              </button>
+              <button class="btn" id="btnCloseDetails" type="button">
+                <i class="bi bi-x-circle"></i> Fechar
+              </button>
+            </div>
+          `
         );
 
         document.getElementById("btnEditTrip")?.addEventListener("click", () => {
-          openLaunchModal({ dateISO: iso, carId, trip, overwrite: true });
+          openLaunchModal({ dateISO: iso, carId, trip, overwrite: true }).catch((e) =>
+            setStatus(`Erro: ${e.message}`)
+          );
         });
+
         document.getElementById("btnCloseDetails")?.addEventListener("click", closeModal);
       };
 
@@ -414,172 +407,165 @@ async function renderWeek(startISO) {
   setStatus("");
 }
 
-/* Modal lançar dia */
-function openLaunchModal(preset = null) {
-  const weeks = buildWeeksFromMin(MIN_START_ISO)
-  const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
-  const dates = weekDatesFromStartISO(week.startISO).map(x => x.iso);
+/* =========================
+   Modal Lançar Dia
+========================= */
+function wireToggleRow(row) {
+  const cbWent = row.querySelector(".cbWent");
+  const cbRet = row.querySelector(".cbRet");
+  const btWent = row.querySelector(".tglWent");
+  const btRet = row.querySelector(".tglRet");
+
+  btWent?.addEventListener("click", () => {
+    cbWent.checked = !cbWent.checked;
+    btWent.classList.toggle("on", cbWent.checked);
+  });
+
+  btRet?.addEventListener("click", () => {
+    cbRet.checked = !cbRet.checked;
+    btRet.classList.toggle("on", cbRet.checked);
+  });
+}
+
+async function openLaunchModal(preset = null) {
+  if (!CONFIG) await loadConfig();
+
+  const weeks = buildWeeksFromMin(MIN_START_ISO);
+  const fallbackWeek = weeks[0];
+
+  if (!selectedWeekStartISO) selectedWeekStartISO = fallbackWeek.startISO;
+
+  const week = weeks.find((w) => w.startISO === selectedWeekStartISO) || fallbackWeek;
+  const dates = weekDatesFromStartISO(week.startISO).map((x) => x.iso);
 
   const pm = peopleMap();
 
   const presetDate = preset?.dateISO || dates[0];
   const presetCar = preset?.carId || (CONFIG.cars?.[0]?.carId || "COBALT");
-  const presetWent = new Set(preset?.trip?.went || (CONFIG.people || []).map(p => p.personId));
-  const presetRet = new Set(preset?.trip?.returned || (CONFIG.people || []).map(p => p.personId));
+  const presetWent = new Set(preset?.trip?.went || (CONFIG.people || []).map((p) => p.personId));
+  const presetRet = new Set(preset?.trip?.returned || (CONFIG.people || []).map((p) => p.personId));
   const presetOverwrite = !!preset?.overwrite;
 
-  const cars = (CONFIG.cars || []);
-  const carCards = cars.map(c => {
-    const driverName = pm.get(c.driverPersonId)?.name || c.driverPersonId;
-    const on = c.carId === presetCar ? "on" : "";
-    const img = CAR_PHOTOS[c.carId] || "./assets/cars/placeholder.png";
-    return `
-    <button type="button" class="carOpt ${on}" data-car="${c.carId}">
-      <img class="carOptImg" src="${escHtml(img)}" alt="${escHtml(c.label)}">
-      <div class="carOptMeta">
-        <div class="carOptTitle">${escHtml(c.label)}</div>
-        <div class="carOptSub">
-          ${driverMiniMarkup(c.driverPersonId)}
-          <span>${escHtml(driverName)}</span>
-        </div>
-      </div>
-    </button>
-  `;
-  }).join("");
-
-  const dateOptions = dates
-    .map(d => `<option value="${d}" ${d === presetDate ? "selected" : ""}>${brDate(d)}</option>`)
+  const cars = CONFIG.cars || [];
+  const carCards = cars
+    .map((c) => {
+      const driverName = pm.get(c.driverPersonId)?.name || c.driverPersonId;
+      const on = c.carId === presetCar ? "on" : "";
+      const img = CAR_PHOTOS[c.carId] || "./assets/cars/placeholder.png";
+      return `
+        <button type="button" class="carOpt ${on}" data-car="${escHtml(c.carId)}">
+          <img class="carOptImg" src="${escHtml(img)}" alt="${escHtml(c.label)}">
+          <div class="carOptMeta">
+            <div class="carOptTitle">${escHtml(c.label)}</div>
+            <div class="carOptSub">
+              ${driverMiniMarkup(c.driverPersonId)}
+              <span>${escHtml(driverName)}</span>
+            </div>
+          </div>
+        </button>
+      `;
+    })
     .join("");
 
+  const dateOptions = dates
+    .map((d) => `<option value="${d}" ${d === presetDate ? "selected" : ""}>${brDate(d)}</option>`)
+    .join("");
 
-  const peopleRows = (CONFIG.people || []).map(p => {
-    const wentChecked = presetWent.has(p.personId);
-    const retChecked = presetRet.has(p.personId);
-    return `
-    <div class="pickRow" data-pid="${p.personId}">
-      <div class="pickLeft">
-        ${avatarMarkup(p.name, p.photoUrl)}
-        <div class="pickNames">
-          <div class="pickName">${escHtml(p.name)}</div>
-          <div class="pickId">${escHtml(p.personId)}</div>
+  const peopleRows = (CONFIG.people || [])
+    .map((p) => {
+      const wentChecked = presetWent.has(p.personId);
+      const retChecked = presetRet.has(p.personId);
+      return `
+        <div class="pickRow" data-pid="${escHtml(p.personId)}">
+          <div class="pickLeft">
+            ${avatarMarkup(p.name, p.photoUrl)}
+            <div class="pickNames">
+              <div class="pickName">${escHtml(p.name)}</div>
+              <div class="pickId">${escHtml(p.personId)}</div>
+            </div>
+          </div>
+
+          <div class="toggles">
+            <input class="cbWent srOnly" type="checkbox" ${wentChecked ? "checked" : ""}>
+            <button type="button" class="tglBtn tglWent ${wentChecked ? "on" : ""}">FOI</button>
+
+            <input class="cbRet srOnly" type="checkbox" ${retChecked ? "checked" : ""}>
+            <button type="button" class="tglBtn tglRet ${retChecked ? "on" : ""}">VOLTOU</button>
+          </div>
         </div>
-      </div>
-
-      <div class="toggles">
-        <input class="cbWent srOnly" type="checkbox" ${wentChecked ? "checked" : ""}>
-        <button type="button" class="tglBtn tglWent ${wentChecked ? "on" : ""}">FOI</button>
-
-        <input class="cbRet srOnly" type="checkbox" ${retChecked ? "checked" : ""}>
-        <button type="button" class="tglBtn tglRet ${retChecked ? "on" : ""}">VOLTOU</button>
-      </div>
-    </div>
-  `;
-  }).join("");
+      `;
+    })
+    .join("");
 
   openModal(preset ? "Editar lançamento" : "Lançar dia", `
-  <div class="formGrid">
+    <div class="formGrid">
 
-    <div>
-      <div class="fieldLabel">Data</div>
-      <select id="inDate" class="input">${dateOptions}</select>
+      <div>
+        <div class="fieldLabel">Data</div>
+        <select id="inDate" class="input">${dateOptions}</select>
+      </div>
+
+      <div>
+        <div class="fieldLabel">Carro</div>
+        <input type="hidden" id="inCar" value="${escHtml(presetCar)}">
+        <div id="carPicker" class="carPicker">${carCards}</div>
+      </div>
+
+      <div>
+        <div class="fieldLabel">Pessoas</div>
+        <div id="pickList" class="pickList">${peopleRows}</div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <input id="inGuestName" class="input" placeholder="Convidado (ex: Pedro)" />
+        <button id="btnAddGuest" class="btn btnIcon" type="button" aria-label="Adicionar">
+          <i class="bi bi-person-plus"></i>
+        </button>
+      </div>
+
+      <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
+        <input id="inOverwrite" type="checkbox" ${presetOverwrite ? "checked" : ""} />
+        Sobrescrever se já existir
+      </label>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="btnSaveTrip" class="btn btnPrimary" type="button">
+          <i class="bi bi-check2-circle"></i> Salvar
+        </button>
+        <button id="btnCancelTrip" class="btn" type="button">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+      </div>
+
+      <div id="modalStatus" class="smallStatus"></div>
     </div>
+  `);
 
-    <div>
-      <div class="fieldLabel">Carro</div>
-      <input type="hidden" id="inCar" value="${escHtml(presetCar)}">
-      <div id="carPicker" class="carPicker">${carCards}</div>
-    </div>
-
-    <div>
-      <div class="fieldLabel">Pessoas</div>
-      <div id="pickList" class="pickList">${peopleRows}</div>
-    </div>
-
-    <div style="display:flex; gap:10px;">
-      <input id="inGuestName" class="input" placeholder="Convidado (ex: Pedro)" />
-      <button id="btnAddGuest" class="btn btnIcon" type="button" aria-label="Adicionar">
-        <i class="bi bi-person-plus"></i>
-      </button>
-    </div>
-
-    <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
-      <input id="inOverwrite" type="checkbox" ${presetOverwrite ? "checked" : ""} />
-      Sobrescrever se já existir
-    </label>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button id="btnSaveTrip" class="btn btnPrimary" type="button">
-        <i class="bi bi-check2-circle"></i> Salvar
-      </button>
-      <button id="btnCancelTrip" class="btn" type="button">
-        <i class="bi bi-x-circle"></i> Cancelar
-      </button>
-    </div>
-
-    <div id="modalStatus" class="smallStatus"></div>
-  </div>
-`);
-
-
-  const modalStatusEl = document.getElementById("modalStatus");
-  const setModalStatus = (m) => { if (modalStatusEl) modalStatusEl.textContent = m || ""; };
-
-  function wireToggleRow(row) {
-    const cbWent = row.querySelector(".cbWent");
-    const cbRet = row.querySelector(".cbRet");
-    const btWent = row.querySelector(".tglWent");
-    const btRet = row.querySelector(".tglRet");
-
-    btWent?.addEventListener("click", () => {
-      cbWent.checked = !cbWent.checked;
-      btWent.classList.toggle("on", cbWent.checked);
-    });
-
-    btRet?.addEventListener("click", () => {
-      cbRet.checked = !cbRet.checked;
-      btRet.classList.toggle("on", cbRet.checked);
-    });
-  }
-
-  // aplica nos fixos (já renderizados)
-  pickListEl?.querySelectorAll(".pickRow").forEach(wireToggleRow);
-
-
-  // ===== car picker =====
+  const pickListEl = document.getElementById("pickList");
   const carPickerEl = document.getElementById("carPicker");
   const inCarEl = document.getElementById("inCar");
+  const modalStatusEl = document.getElementById("modalStatus");
 
-  carPickerEl?.querySelectorAll(".carOpt").forEach(btn => {
+  const setModalStatus = (m) => {
+    if (modalStatusEl) modalStatusEl.textContent = m || "";
+  };
+
+  // bind toggles existentes
+  pickListEl?.querySelectorAll(".pickRow").forEach(wireToggleRow);
+
+  // bind seleção de carro
+  carPickerEl?.querySelectorAll(".carOpt").forEach((btn) => {
     btn.addEventListener("click", () => {
-      carPickerEl.querySelectorAll(".carOpt").forEach(b => b.classList.remove("on"));
+      carPickerEl.querySelectorAll(".carOpt").forEach((b) => b.classList.remove("on"));
       btn.classList.add("on");
       inCarEl.value = btn.dataset.car;
     });
   });
 
-  // ===== toggles FOI/VOLTOU =====
-  const pickListEl = document.getElementById("pickList");
-  pickListEl?.querySelectorAll(".pickRow").forEach(row => {
-    const cbWent = row.querySelector(".cbWent");
-    const cbRet = row.querySelector(".cbRet");
-    const btWent = row.querySelector(".tglWent");
-    const btRet = row.querySelector(".tglRet");
-
-    btWent?.addEventListener("click", () => {
-      cbWent.checked = !cbWent.checked;
-      btWent.classList.toggle("on", cbWent.checked);
-    });
-
-    btRet?.addEventListener("click", () => {
-      cbRet.checked = !cbRet.checked;
-      btRet.classList.toggle("on", cbRet.checked);
-    });
-  });
-
-
   function addGuestToList(name) {
     const slug = slugGuest(name);
     if (!slug) return;
+
     const pid = `guest#${slug}`;
     if (pickListEl.querySelector(`[data-pid="${pid}"]`)) return;
 
@@ -604,17 +590,17 @@ function openLaunchModal(preset = null) {
         <button type="button" class="tglBtn tglRet on">VOLTOU</button>
       </div>
     `;
+
     pickListEl.appendChild(row);
     wireToggleRow(row);
-
-
   }
 
   document.getElementById("btnAddGuest")?.addEventListener("click", () => {
-    const name = document.getElementById("inGuestName").value.trim();
+    const input = document.getElementById("inGuestName");
+    const name = input.value.trim();
     if (!name) return;
     addGuestToList(name);
-    document.getElementById("inGuestName").value = "";
+    input.value = "";
   });
 
   document.getElementById("btnCancelTrip")?.addEventListener("click", closeModal);
@@ -631,7 +617,7 @@ function openLaunchModal(preset = null) {
       const went = [];
       const returned = [];
 
-      rows.forEach(r => {
+      rows.forEach((r) => {
         const pid = r.dataset.pid;
         if (r.querySelector(".cbWent")?.checked) went.push(pid);
         if (r.querySelector(".cbRet")?.checked) returned.push(pid);
@@ -645,7 +631,7 @@ function openLaunchModal(preset = null) {
       const qs = overwrite ? "?overwrite=1" : "";
       await apiRequest(`/trip/${encodeURIComponent(carId)}/${encodeURIComponent(dateISO)}${qs}`, {
         method: "PUT",
-        body: { went, returned }
+        body: { went, returned },
       });
 
       closeModal();
@@ -660,10 +646,13 @@ function openLaunchModal(preset = null) {
   });
 }
 
-/* Extrato WhatsApp */
+/* =========================
+   Extrato WhatsApp
+========================= */
 function round2(n) {
   return Math.round((Number(n) + 1e-9) * 100) / 100;
 }
+
 function displayName(pid) {
   const pm = peopleMap();
   if (String(pid).startsWith("guest#")) return pid.replace("guest#", "Convidado: ");
@@ -673,8 +662,8 @@ function displayName(pid) {
 async function openStatementModal() {
   if (!CONFIG) await loadConfig();
 
-  const weeks = buildWeeksFromMin(MIN_START_ISO)
-  const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
+  const weeks = buildWeeksFromMin(MIN_START_ISO);
+  const week = weeks.find((w) => w.startISO === selectedWeekStartISO) || weeks[0];
 
   if (!currentWeekCache.length) {
     await renderWeek(week.startISO);
@@ -703,21 +692,20 @@ async function openStatementModal() {
     const went = Array.isArray(trip.went) ? trip.went : [];
     const ret = Array.isArray(trip.returned) ? trip.returned : [];
 
-    // motorisa entra no divisor, mas não gera PIX para ele mesmo
+    // motorista entra no divisor, mas não gera PIX para ele mesmo
     if (fareGo > 0 && went.length > 0) {
-      const share = fareGo / went.length; // inclui motorista no rateio
-      went.forEach(pid => {
-        if (pid !== driverId) add(pid, driverId, share); // só gera PIX se não for o motorista
+      const share = fareGo / went.length;
+      went.forEach((pid) => {
+        if (pid !== driverId) add(pid, driverId, share);
       });
     }
 
     if (fareRet > 0 && ret.length > 0) {
-      const share = fareRet / ret.length; // inclui motorista no rateio
-      ret.forEach(pid => {
-        if (pid !== driverId) add(pid, driverId, share); // só gera PIX se não for o motorista
+      const share = fareRet / ret.length;
+      ret.forEach((pid) => {
+        if (pid !== driverId) add(pid, driverId, share);
       });
     }
-
   });
 
   const driverLabel = (id) => pm.get(id)?.name || id;
@@ -728,10 +716,10 @@ async function openStatementModal() {
 
   Object.keys(ledger)
     .sort((a, b) => displayName(a).localeCompare(displayName(b), "pt-BR"))
-    .forEach(pid => {
+    .forEach((pid) => {
       const byDriver = ledger[pid];
       const parts = [];
-      Array.from(drivers).forEach(did => {
+      Array.from(drivers).forEach((did) => {
         const v = round2(byDriver[did] || 0);
         if (v > 0) parts.push(`PIX de R$ ${v.toFixed(2)} para ${driverLabel(did)}`);
       });
@@ -744,8 +732,8 @@ async function openStatementModal() {
     <div class="formGrid">
       <textarea class="input" rows="12" readonly>${text}</textarea>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button id="btnCopyStatement" class="btn btnPrimary">Copiar</button>
-        <button id="btnCloseStatement" class="btn">Fechar</button>
+        <button id="btnCopyStatement" class="btn btnPrimary" type="button">Copiar</button>
+        <button id="btnCloseStatement" class="btn" type="button">Fechar</button>
       </div>
       <div id="stStatus" class="smallStatus"></div>
     </div>
@@ -763,7 +751,9 @@ async function openStatementModal() {
   });
 }
 
-/* Init */
+/* =========================
+   Init
+========================= */
 function init() {
   $("modalClose")?.addEventListener("click", closeModal);
   $("modalBackdrop")?.addEventListener("click", closeModal);
@@ -772,29 +762,33 @@ function init() {
     if (e.key === "Escape") closeModal();
   });
 
-
   const weekSelect = $("weekSelect");
-  const weeks = buildWeeksFromMin(MIN_START_ISO)
+  const weeks = buildWeeksFromMin(MIN_START_ISO);
 
-  weekSelect.innerHTML = weeks.map((w, idx) =>
-    `<option value="${w.startISO}" ${idx === 0 ? "selected" : ""}>${w.label}</option>`
-  ).join("");
+  weekSelect.innerHTML = weeks
+    .map((w, idx) => `<option value="${w.startISO}" ${idx === 0 ? "selected" : ""}>${w.label}</option>`)
+    .join("");
 
   selectedWeekStartISO = weeks[0].startISO;
 
   weekSelect.addEventListener("change", () => {
     selectedWeekStartISO = weekSelect.value;
-    renderWeek(selectedWeekStartISO).catch(e => setStatus(`Erro: ${e.message}`));
+    renderWeek(selectedWeekStartISO).catch((e) => setStatus(`Erro: ${e.message}`));
   });
 
   $("btnRefresh")?.addEventListener("click", () => {
-    renderWeek(selectedWeekStartISO).catch(e => setStatus(`Erro: ${e.message}`));
+    renderWeek(selectedWeekStartISO).catch((e) => setStatus(`Erro: ${e.message}`));
   });
 
-  $("btnLaunchDay")?.addEventListener("click", () => openLaunchModal(null));
-  $("btnExportWpp")?.addEventListener("click", () => openStatementModal().catch(e => setStatus(`Erro: ${e.message}`)));
+  $("btnLaunchDay")?.addEventListener("click", () => {
+    openLaunchModal(null).catch((e) => setStatus(`Erro: ${e.message}`));
+  });
 
-  renderWeek(selectedWeekStartISO).catch(e => setStatus(`Erro: ${e.message}`));
+  $("btnExportWpp")?.addEventListener("click", () => {
+    openStatementModal().catch((e) => setStatus(`Erro: ${e.message}`));
+  });
+
+  renderWeek(selectedWeekStartISO).catch((e) => setStatus(`Erro: ${e.message}`));
 }
 
 init();
