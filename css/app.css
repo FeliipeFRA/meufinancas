@@ -10,14 +10,21 @@
 
 *{ box-sizing:border-box; }
 
+html, body{ height:100%; }
+
 body{
   margin:0;
   font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   background:var(--bg);
   color:var(--text);
+  overflow-x:hidden; /* evita qualquer “estouro” horizontal geral */
 }
 
+button, input, select, textarea{ font-family: inherit; }
 
+/* =========================
+   Topbar
+========================= */
 .topbar{
   background: linear-gradient(90deg, var(--red), #8a1111);
   color:#fff;
@@ -28,6 +35,8 @@ body{
   max-width: 920px;
   margin: 0 auto;
   padding: 12px 16px;
+  display:flex;
+  align-items:center;
 }
 
 .brand{
@@ -37,12 +46,12 @@ body{
 }
 
 .brandLogo{
-  width:40px;
-  height:40px;
-  object-fit:contain;
-  border-radius:10px;
-  background: rgba(255,255,255,0.12);
-  padding:6px;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 .brandTitle{
@@ -55,6 +64,9 @@ body{
   opacity:0.9;
 }
 
+/* =========================
+   Layout
+========================= */
 .container{
   max-width: 920px;
   margin: 0 auto;
@@ -73,6 +85,7 @@ body{
   align-items:center;
   justify-content:space-between;
   gap:12px;
+  flex-wrap:wrap;
 }
 
 h2{
@@ -81,15 +94,6 @@ h2{
 }
 
 .muted{ color:var(--muted); }
-
-.btn{
-  padding:10px 12px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:#fff;
-  color:var(--text);
-  cursor:pointer;
-}
 
 .pre{
   margin-top:12px;
@@ -101,14 +105,124 @@ h2{
   word-break:break-word;
 }
 
-.weekWrap{
-  margin-top:12px;
-  display:grid;
-  gap:12px;
+/* =========================
+   Buttons / Inputs
+========================= */
+.btn{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  cursor:pointer;
 }
 
-/* Dia */
+.btn:active{ transform: translateY(1px); }
+
+.btnIcon{
+  width: 44px;
+  height: 44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 12px;
+}
+
+.btnIcon i{ font-size: 18px; }
+
+.btnBig{
+  padding: 14px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 14px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.btnPrimary{
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.btnGhost{
+  background: #fff;
+  border: 2px solid var(--red);
+  color: var(--red);
+}
+
+.select,
+.input{
+  width:100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-weight: 600;
+  outline: none;
+}
+
+.input{
+  padding: 14px 14px;
+}
+
+.input:focus,
+.select:focus{
+  border-color: rgba(185,28,28,.55);
+  box-shadow: 0 0 0 4px rgba(185,28,28,.12);
+}
+
+textarea.input{
+  resize: none;
+  line-height: 1.25;
+}
+
+.weekPicker{
+  display:grid;
+  gap:6px;
+  margin: 14px 0 10px;
+}
+
+.weekPickerLabel{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.actionsTop{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+@media (max-width: 520px){
+  .actionsTop{ grid-template-columns: 1fr; }
+}
+
+/* =========================
+   Semana (carrossel)
+========================= */
+.weekWrap{
+  margin-top:12px;
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding:10px 2px 6px;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+}
+
 .dayCard{
+  flex:0 0 auto;
+  min-width: 230px;
+  scroll-snap-align:start;
+
+  background:#fff;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -124,9 +238,7 @@ h2{
   gap:10px;
 }
 
-.dayTitle{
-  font-weight:800;
-}
+.dayTitle{ font-weight:800; }
 
 .dayMeta{
   font-size:12px;
@@ -141,10 +253,15 @@ h2{
   padding:12px;
 }
 
+.tripRow + .tripRow{
+  border-top:1px solid var(--border);
+}
+
 .tripMeta{
   display:flex;
   gap:10px;
   align-items:center;
+  min-width:0;
 }
 
 .carPhoto{
@@ -163,26 +280,35 @@ h2{
   object-fit:cover;
   border:2px solid var(--gold);
   background:#f3f4f6;
+  flex:0 0 auto;
 }
 
 .metaText{
   display:flex;
   flex-direction:column;
   line-height:1.1;
+  min-width:0;
 }
 
 .metaText .carName{
   font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .metaText .driverName{
   font-size:12px;
   color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .col{
   border-left: 1px dashed var(--border);
   padding-left:10px;
+  min-width:0;
 }
 
 .colLabel{
@@ -212,7 +338,7 @@ h2{
   color:#374151;
 }
 
-/* Mobile */
+/* Mobile (cards de dia continuam no carrossel; a tripRow vira 1 coluna) */
 @media (max-width: 720px){
   .tripRow{
     grid-template-columns: 1fr;
@@ -225,7 +351,9 @@ h2{
   }
 }
 
-/* Modal */
+/* =========================
+   Modal
+========================= */
 .modalBackdrop{
   position:fixed;
   inset:0;
@@ -238,16 +366,18 @@ h2{
   left:50%;
   top:50%;
   transform: translate(-50%,-50%);
-  width:min(92vw, 520px);
+  width:min(92vw, 560px);
+  max-height: 86vh;
+
   background:#fff;
   border:1px solid var(--border);
   border-radius:14px;
   z-index: 1001;
-  overflow:hidden;
-}
 
-img.avatar{
-  object-fit: cover;
+  display:flex;
+  flex-direction:column;
+
+  overflow:hidden; /* impede scroll horizontal no container */
 }
 
 .modalHeader{
@@ -258,238 +388,85 @@ img.avatar{
   justify-content:space-between;
   align-items:center;
   gap:10px;
+
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .modalTitle{ font-weight:800; }
 
 .modalBody{
-  padding:12px;
+  padding:14px;
+  overflow-y:auto;
+  overflow-x:hidden; /* scroll horizontal proibido no body */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Regras anti-estouro dentro do modal */
+#modal .formGrid,
+#modal .pickList,
+#modal .pickRow{
+  max-width: 100%;
+}
+
+#modal .pickLeft,
+#modal .pickNames,
+#modal .carOptMeta{
+  min-width: 0;
 }
 
 .hidden{ display:none !important; }
 
-/* Logo maior e sem fundo */
-.brandLogo{
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  background: transparent !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
-
-/* Header alinhamento */
-.topbarInner{
-  display:flex;
-  align-items:center;
-}
-.brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-/* Card header layout */
-.cardHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-.cardHeaderLeft{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.cardHeaderRight{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.weekTitle{
-  font-weight:600;
-}
-
-.select{
-  padding:8px 10px;
-  border-radius:10px;
-}
-
-/* Carrossel horizontal dos dias */
-.weekWrap{
-  display:flex;
-  gap:12px;
-  overflow-x:auto;
-  padding:10px 2px 6px;
-  scroll-snap-type:x mandatory;
-  -webkit-overflow-scrolling:touch;
-}
-
-.dayCard{
-  flex:0 0 auto;
-  min-width: 230px;
-  scroll-snap-align:start;
-  border-radius:14px;
-  padding:12px;
-}
-
-.dayTop{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  gap:10px;
-  margin-bottom:10px;
-}
-
-.dayName{
-  font-weight:700;
-}
-
-.dayDate{
-  opacity:.7;
-  font-size:.9em;
-}
-
-.dayStatus{
-  margin:8px 0 12px;
-}
-
-.dayActions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-/* Botões (se você já tem classes, isso só complementa) */
-.btnPrimary{
-  font-weight:600;
-}
-
-.btnGhost{
-  background: transparent;
-}
-
-.actionsTop{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 14px 0;
-}
-
-.btnBig{
-  padding: 14px 14px;
-  font-weight: 800;
-  font-size: 14px;
-  border-radius: 14px;
-}
-
-.btnPrimary{
-  background: var(--red);
-  border-color: var(--red);
-  color: #fff;
-}
-
-.btnGhost{
-  background: #fff;
-  border: 2px solid var(--red);
-  color: var(--red);
-}
-
-.btnIcon{
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-}
-
-.btnIcon i{ font-size: 18px; }
-
-.weekPicker{
-  display:grid;
-  gap:6px;
-  margin: 14px 0 10px;
-}
-.weekPickerLabel{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 700;
-}
-.select{
-  width: 100%;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-}
-
-.btnBig{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-}
-
-/* modal responsivo */
-.modal{
-  width:min(92vw, 560px);
-  max-height: 86vh;
-  display:flex;
-  flex-direction:column;
-}
-.modalBody{
-  overflow:auto;
-  max-height: calc(86vh - 64px);
-}
-
-/* Modal: nunca permitir scroll horizontal no modal inteiro */
-.modal{ overflow: hidden; }
-.modalBody{
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-
+/* Modal mobile: bottom-sheet */
 @media (max-width: 520px){
-  .actionsTop{ grid-template-columns: 1fr; }
   .modal{
-    left:0; right:0; bottom:0; top:auto;
+    left:0;
+    right:0;
+    bottom:0;
+    top:auto;
     transform:none;
     width:100vw;
     border-radius:16px 16px 0 0;
     max-height: 88vh;
   }
-  .modalBody{ max-height: calc(88vh - 64px); }
-  .modalBody{ overflow-x: hidden; } 
 }
 
-/* ===== Modal Launch: carrossel de carros (único scroll horizontal) ===== */
-.carPicker{
-  display: flex;
+/* =========================
+   Modal Launch (Lançar dia)
+========================= */
+.fieldLabel{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:800;
+  margin: 2px 0 6px;
+}
+
+/* Grid do form no modal */
+.formGrid{
+  display:grid;
   gap: 12px;
-  overflow-x: auto;     /* scroll só aqui */
-  overflow-y: hidden;
+}
+
+/* Carrossel de carros: único scroll horizontal */
+.carPicker{
+  display:flex;
+  gap: 12px;
+  overflow-x:auto;   /* scroll horizontal só aqui */
+  overflow-y:hidden;
   padding: 8px 4px 10px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  max-width: 100%;
+  max-width:100%;
 }
+
+/* remove “barriga” de flex em alguns browsers */
+.carPicker > *{ scroll-snap-align: start; }
 
 .carOpt{
   flex: 0 0 auto;
-  width: 260px;         /* desktop */
-  max-width: 78vw;      /* mobile */
-  scroll-snap-align: start;
-
+  width: 260px;      /* desktop */
+  max-width: 78vw;   /* mobile */
   border: 1px solid var(--border);
   background: #fff;
   border-radius: 14px;
@@ -497,27 +474,30 @@ img.avatar{
   cursor: pointer;
   text-align: left;
 
-  display: grid;
+  display:grid;
   grid-template-columns: 64px 1fr;
   gap: 10px;
-  align-items: center;
+  align-items:center;
+
+  /* botão não “estoura” */
+  min-width: 210px;
 }
 
 .carOpt.on{
-  border-color: var(--red);
-  box-shadow: 0 0 0 2px rgba(185,28,28,.12);
+  border-color: rgba(185,28,28,.55);
+  box-shadow: 0 0 0 4px rgba(185,28,28,.10);
 }
 
 .carOptImg{
   width: 64px;
-  height: 44px;
+  height: 46px;
   object-fit: cover;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #f3f4f6;
 }
 
-.carOptMeta{ min-width: 0; }
+.carOptMeta{ min-width:0; }
 
 .carOptTitle{
   font-weight: 900;
@@ -528,13 +508,13 @@ img.avatar{
 }
 
 .carOptSub{
-  display: flex;
-  align-items: center;
+  display:flex;
+  align-items:center;
   gap: 8px;
   margin-top: 6px;
   color: var(--muted);
   font-size: 12px;
-  min-width: 0;
+  min-width:0;
 }
 
 .carOptSub span{
@@ -543,89 +523,62 @@ img.avatar{
   text-overflow: ellipsis;
 }
 
-
-/* ===== Forms / Inputs ===== */
-.fieldLabel{
-  font-size:12px;
-  font-weight:800;
-  color:var(--muted);
-  margin: 2px 0 6px;
-}
-
-
-/* ===== Modal Launch: lista de pessoas ===== */
-.formGrid{
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.fieldLabel{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
+/* Lista de pessoas */
 .pickList{
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display:grid;
+  gap:10px;
 }
 
 .pickRow{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
 
-  padding: 10px 10px;
+  padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #fff;
-
-  max-width: 100%;
 }
 
 .pickLeft{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  min-width:0;
 }
 
 .pickNames{
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
+  display:flex;
+  flex-direction:column;
+  line-height:1.1;
+  min-width:0;
 }
 
 .pickName{
   font-weight: 900;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .pickId{
   font-size: 12px;
   color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .toggles{
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
+  display:flex;
+  gap:8px;
+  flex:0 0 auto;
 }
 
-/* toggle buttons */
 .tglBtn{
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: 999px;
   border: 1.5px solid var(--red);
   background: #fff;
@@ -639,194 +592,33 @@ img.avatar{
   color: #fff;
 }
 
-/* checkbox invisível (você usa srOnly) */
+/* checkbox invisível */
 .srOnly{
   position: absolute !important;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
 }
 
-
-.input{
-  width:100%;
-  padding: 14px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background:#fff;
-  color:var(--text);
-  font-weight: 600;
-  outline: none;
-}
-.input:focus{
-  border-color: rgba(185,28,28,.55);
-  box-shadow: 0 0 0 4px rgba(185,28,28,.12);
+/* status pequeno no modal */
+.smallStatus{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
 }
 
-textarea.input{
-  resize: none;
-  line-height: 1.25;
-}
-
-/* ===== Modal layout moderno ===== */
-.modalHeader{
-  position: sticky;
-  top: 0;
-  background: #fff7ed;
-  z-index: 2;
-}
-
-.modalBody{
-  padding: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-
-@media (max-width: 520px){
-  .modal{
-    left:0; right:0; bottom:0; top:auto;
-    transform:none;
-    width:100vw;
-    border-radius:16px 16px 0 0;
-    max-height: 88vh;
-  }
-  .modalBody{
-    max-height: calc(88vh - 64px);
-  }
-}
-
-/* ===== Car picker (com foto) ===== */
-.carPicker{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  padding: 2px 2px 6px;
-  -webkit-overflow-scrolling: touch;
-}
-.carOpt{
-  flex: 0 0 auto;
-  min-width: 210px;
-  border:1px solid var(--border);
-  border-radius: 16px;
-  background:#fff;
-  padding: 10px;
-  display:flex;
-  gap:10px;
-  align-items:center;
-  cursor:pointer;
-}
-.carOpt.on{
-  border-color: rgba(185,28,28,.55);
-  box-shadow: 0 0 0 4px rgba(185,28,28,.10);
-}
-.carOptImg{
-  width:64px;
-  height:46px;
-  border-radius: 12px;
-  object-fit: cover;
-  border:1px solid var(--border);
-  background:#f3f4f6;
-}
-.carOptMeta{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-}
-.carOptTitle{ font-weight: 900; }
-.carOptSub{ font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:8px; }
-
-/* ===== Pessoas (FOI / VOLTOU) ===== */
-.pickList{
-  display:grid;
-  gap:10px;
-}
-.pickRow{
-  border:1px solid var(--border);
-  border-radius: 16px;
-  padding: 10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
-.pickLeft{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width: 0;
-}
-.pickNames{ min-width: 0; }
-.pickName{ font-weight: 900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.pickId{ font-size:12px; color:var(--muted); }
-
-.toggles{
-  display:flex;
-  gap:8px;
-  flex: 0 0 auto;
-}
-.tglBtn{
-  border:1px solid var(--border);
-  background:#fff;
-  border-radius: 999px;
-  padding: 10px 12px;
-  font-weight: 900;
-  cursor:pointer;
-}
-.tglBtn.on{
-  border-color: var(--red);
-  background: rgba(185,28,28,.10);
-  color: var(--red);
-}
-.srOnly{
-  position:absolute;
-  width:1px; height:1px;
-  padding:0; margin:-1px;
-  overflow:hidden; clip:rect(0,0,0,0);
-  white-space:nowrap; border:0;
-}
-
-/* modal grid */
-.formGrid{
-  display:grid;
-  gap: 12px;
-}
-
-
-
-button, input, select, textarea { font-family: inherit; }
-
-/* OVERRIDE FINAL: modal nunca deve ter rolagem horizontal */
-#modal{
-  overflow: hidden !important;
-}
-
-#modal .modalBody{
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-
-/* garante que nada dentro do modal “estoure” largura */
-#modal .formGrid,
-#modal .pickList,
-#modal .pickRow{
-  max-width: 100%;
-}
-
-#modal .pickLeft,
-#modal .pickNames,
-#modal .carOptMeta{
-  min-width: 0;
-}
-
-/* mobile: se apertar, joga botões FOI/VOLTOU pra baixo */
+/* Mobile bem estreito: empilha botões FOI/VOLTOU */
 @media (max-width: 420px){
-  #modal .pickRow{
+  .pickRow{
     flex-direction: column;
     align-items: stretch;
   }
-  #modal .toggles{
+  .toggles{
     justify-content: flex-end;
   }
 }
