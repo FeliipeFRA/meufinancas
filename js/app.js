@@ -16,32 +16,18 @@ const CAR_PHOTOS = {
 const MIN_START_ISO = "2026-02-02";
 
 /* =========================
+   Consts
+========================= */
+const PARKING_FEE_PER_PERSON = 20; // R$20 por pessoa (5 padrão) = R$100 mês
+const FIXED_PARKING_RECEIVER_NAME = "Felipe Ferreira";
+
+/* =========================
    Utils
 ========================= */
 function setStatus(msg) {
   const el = $("status");
   if (el) el.textContent = msg || "";
 }
-
-const PARKING_FEE_PER_PERSON = 20;
-
-function getFirstDayOfMonthInWeek(startISO) {
-  const start = new Date(`${startISO}T00:00:00`);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    if (d.getDate() === 1) return d; // achou dia 1 dentro dessa semana
-  }
-  return null;
-}
-
-function monthLabelFromDate(d) {
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = d.getFullYear();
-  return `${mm}/${yy}`;
-}
-
-
 
 function toISODate(d) {
   const y = d.getFullYear();
@@ -114,6 +100,44 @@ function weekDatesFromStartISO(startISO) {
 function setHeaderWeekLabel(startISO, endISO) {
   const brandSub = $("brandSub");
   if (brandSub) brandSub.textContent = `Semana: ${brDate(startISO)} a ${brDate(endISO)}`;
+}
+
+function monthLabelFromDate(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${mm}/${yy}`;
+}
+
+// Semana elegível: semana (Seg..Dom) que contém dia 1, 2 ou 3 do mês
+function getEarlyMonthDayInWeek(startISO) {
+  const start = new Date(`${startISO}T00:00:00`);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const day = d.getDate();
+    if (day === 1 || day === 2 || day === 3) return d;
+  }
+  return null;
+}
+
+function findPersonIdByName(targetName) {
+  const norm = (s) =>
+    String(s || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const t = norm(targetName);
+  const people = CONFIG?.people || [];
+
+  const exact = people.find((p) => norm(p.name) === t);
+  if (exact) return exact.personId;
+
+  const partial = people.find((p) => norm(p.name).includes(t));
+  if (partial) return partial.personId;
+
+  return null;
 }
 
 function peopleMap() {
@@ -570,10 +594,8 @@ async function openLaunchModal(preset = null) {
     if (modalStatusEl) modalStatusEl.textContent = m || "";
   };
 
-  // bind toggles existentes
   pickListEl?.querySelectorAll(".pickRow").forEach(wireToggleRow);
 
-  // bind seleção de carro
   carPickerEl?.querySelectorAll(".carOpt").forEach((btn) => {
     btn.addEventListener("click", () => {
       carPickerEl.querySelectorAll(".carOpt").forEach((b) => b.classList.remove("on"));
@@ -673,6 +695,7 @@ function round2(n) {
   return Math.round((Number(n) + 1e-9) * 100) / 100;
 }
 
+// Compensa A<->B (líquido)
 function netLedger(ledger) {
   const ids = new Set();
 
@@ -718,7 +741,6 @@ function netLedger(ledger) {
   }
 }
 
-
 function displayName(pid) {
   const pm = peopleMap();
   if (String(pid).startsWith("guest#")) return pid.replace("guest#", "Convidado: ");
@@ -729,7 +751,7 @@ async function openStatementModal() {
   if (!CONFIG) await loadConfig();
 
   const weeks = buildWeeksFromMin(MIN_START_ISO);
-  const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
+  const week = weeks.find((w) => w.startISO === selectedWeekStartISO) || weeks[0];
 
   if (!currentWeekCache.length) {
     await renderWeek(week.startISO);
@@ -737,34 +759,28 @@ async function openStatementModal() {
 
   const cm = carsMap();
   const pm = peopleMap();
-
   const driverLabel = (id) => pm.get(id)?.name || id;
 
-  // "primeira semana do mês" = semana que contém o dia 1
-  const firstDay = getFirstDayOfMonthInWeek(week.startISO);
-  let includeMonthlyParking = !!firstDay;
+  // elegível só se a semana tiver dia 1/2/3 (Seg..Dom)
+  const earlyDay = getEarlyMonthDayInWeek(week.startISO);
+  const parkingEligible = !!earlyDay;
 
-  // mês-alvo do estacionamento:
-  // - automático: mês do "dia 1" encontrado na semana
-  // - manual: mês da data inicial da semana (pra não ficar indefinido)
-  const defaultMonthDate = firstDay || new Date(`${week.startISO}T00:00:00`);
-  const parkingMonthLabel = monthLabelFromDate(defaultMonthDate);
+  // checkbox só existe se elegível; por padrão ligado quando elegível
+  let includeMonthlyParking = parkingEligible;
 
-  // "5 padrão": pega até 5 pessoas do CONFIG (não inclui guests, porque guest# não está no CONFIG)
+  const parkingMonthLabel = monthLabelFromDate(earlyDay || new Date(`${week.startISO}T00:00:00`));
+
+  // 5 padrão (primeiros 5 do CONFIG)
   const defaultPayers = (CONFIG.people || [])
-    .map(p => p.personId)
-    .filter(pid => !String(pid).startsWith("guest#"))
+    .map((p) => p.personId)
+    .filter((pid) => !String(pid).startsWith("guest#"))
     .slice(0, 5);
 
-  // Quem recebe o estacionamento (precisa existir pra virar PIX)
-  // padrão: primeiro motorista (se existir), senão primeira pessoa
-  const defaultPayee =
-    (CONFIG.cars?.[0]?.driverPersonId)
-    || defaultPayers[0]
-    || (CONFIG.people?.[0]?.personId)
-    || "";
-
-  let parkingPayeeId = defaultPayee;
+  // recebedor fixo: Felipe Ferreira (personId real)
+  const parkingPayeeId =
+    findPersonIdByName(FIXED_PARKING_RECEIVER_NAME) ||
+    findPersonIdByName("Felipe") ||
+    (CONFIG.people?.[0]?.personId || "");
 
   function buildStatementText() {
     const ledger = {};
@@ -779,61 +795,64 @@ async function openStatementModal() {
       ledger[payerId][payeeId] = round2((ledger[payerId][payeeId] || 0) + v);
     }
 
-    // ---- calcula corridas ----
+    // corridas
     currentWeekCache.forEach(({ carId, trip }) => {
       const car = cm.get(carId);
       if (!car) return;
 
       const driverId = car.driverPersonId;
-
       const fareGo = Number(car.fareGo || 0);
       const fareRet = Number(car.fareReturn || 0);
 
       const went = Array.isArray(trip.went) ? trip.went : [];
       const ret = Array.isArray(trip.returned) ? trip.returned : [];
 
-      // GO
       if (fareGo > 0 && went.length > 0) {
-        const share = fareGo / went.length; // inclui motorista no divisor
-        went.forEach(pid => {
+        const share = fareGo / went.length;
+        went.forEach((pid) => {
           if (pid !== driverId) add(pid, driverId, share);
         });
       }
 
-      // RETURN
       if (fareRet > 0 && ret.length > 0) {
-        const share = fareRet / ret.length; // inclui motorista no divisor
-        ret.forEach(pid => {
+        const share = fareRet / ret.length;
+        ret.forEach((pid) => {
           if (pid !== driverId) add(pid, driverId, share);
         });
       }
     });
 
-    // ---- estacionamento mensal (uma vez no mês): 5 padrão x R$20 ----
-    if (includeMonthlyParking) {
-      defaultPayers.forEach(pid => add(pid, parkingPayeeId, PARKING_FEE_PER_PERSON));
+    // estacionamento mensal (apenas se elegível e marcado)
+    if (parkingEligible && includeMonthlyParking) {
+      defaultPayers.forEach((pid) => add(pid, parkingPayeeId, PARKING_FEE_PER_PERSON));
     }
 
-    // Compensa A<->B (líquido)
+    // líquido
     netLedger(ledger);
 
-    // ---- monta texto ----
     const lines = [];
     lines.push(`PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.`);
-    if (includeMonthlyParking) {
-      lines.push(`Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa (5 padrão).`);
+
+    if (parkingEligible && includeMonthlyParking) {
+      lines.push(
+        `Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(
+          2
+        )} por pessoa (5 padrão).`
+      );
       lines.push(`Recebedor estacionamento: ${driverLabel(parkingPayeeId)}.`);
     }
+
     lines.push("");
 
     Object.keys(ledger)
       .sort((a, b) => displayName(a).localeCompare(displayName(b), "pt-BR"))
-      .forEach(payerId => {
+      .forEach((payerId) => {
         const byPayee = ledger[payerId] || {};
-        const payees = Object.keys(byPayee)
-          .sort((a, b) => driverLabel(a).localeCompare(driverLabel(b), "pt-BR"));
+        const payees = Object.keys(byPayee).sort((a, b) =>
+          driverLabel(a).localeCompare(driverLabel(b), "pt-BR")
+        );
 
-        const parts = payees.map(payeeId => {
+        const parts = payees.map((payeeId) => {
           const v = round2(byPayee[payeeId] || 0);
           return `PIX de R$ ${v.toFixed(2)} para ${driverLabel(payeeId)}`;
         });
@@ -848,29 +867,27 @@ async function openStatementModal() {
     lines.push("CRISTHIAN");
     lines.push("16994548817 | Cristhian Cesar (BRADESCO)");
 
-
     return lines.join("\n");
   }
 
-  const payeeOptions = (CONFIG.people || [])
-    .map(p => `<option value="${escHtml(p.personId)}" ${p.personId === parkingPayeeId ? "selected" : ""}>${escHtml(p.name)}</option>`)
-    .join("");
-
   let text = buildStatementText();
 
-  openModal("Extrato WhatsApp", `
+  openModal(
+    "Extrato WhatsApp",
+    `
     <div class="formGrid">
       <textarea id="stText" class="input" rows="12" readonly></textarea>
 
-      <label style="display:flex; gap:10px; align-items:center; font-weight:800;">
-        <input id="chkMonthlyParking" type="checkbox" ${includeMonthlyParking ? "checked" : ""}>
-        Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa
-      </label>
-
-      <div>
-        <div class="fieldLabel">Quem recebe o estacionamento</div>
-        <select id="selParkingPayee" class="input">${payeeOptions}</select>
-      </div>
+      ${
+        parkingEligible
+          ? `<label style="display:flex; gap:10px; align-items:center; font-weight:800;">
+               <input id="chkMonthlyParking" type="checkbox" ${includeMonthlyParking ? "checked" : ""}>
+               Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(
+              2
+            )} por pessoa (recebedor: ${escHtml(FIXED_PARKING_RECEIVER_NAME)})
+             </label>`
+          : ""
+      }
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="btnCopyStatement" class="btn btnPrimary" type="button">Copiar</button>
@@ -879,24 +896,20 @@ async function openStatementModal() {
 
       <div id="stStatus" class="smallStatus"></div>
     </div>
-  `);
+  `
+  );
 
   const ta = document.getElementById("stText");
   if (ta) ta.value = text;
 
-  const chk = document.getElementById("chkMonthlyParking");
-  chk?.addEventListener("change", () => {
-    includeMonthlyParking = !!chk.checked;
-    text = buildStatementText();
-    if (ta) ta.value = text;
-  });
-
-  const sel = document.getElementById("selParkingPayee");
-  sel?.addEventListener("change", () => {
-    parkingPayeeId = sel.value;
-    text = buildStatementText();
-    if (ta) ta.value = text;
-  });
+  if (parkingEligible) {
+    const chk = document.getElementById("chkMonthlyParking");
+    chk?.addEventListener("change", () => {
+      includeMonthlyParking = !!chk.checked;
+      text = buildStatementText();
+      if (ta) ta.value = text;
+    });
+  }
 
   document.getElementById("btnCloseStatement")?.addEventListener("click", closeModal);
 
@@ -910,7 +923,6 @@ async function openStatementModal() {
     }
   });
 }
-
 
 /* =========================
    Init
