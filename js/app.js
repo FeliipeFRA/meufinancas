@@ -23,18 +23,24 @@ function setStatus(msg) {
   if (el) el.textContent = msg || "";
 }
 
-const PARKING_FEE_PER_DAY = 20;
+const PARKING_FEE_PER_PERSON = 20;
 
-/* semana é "primeira do mês" se ela contém o dia 1 (mesmo que comece no mês anterior) */
-function isFirstWeekOfMonth(startISO) {
+function getFirstDayOfMonthInWeek(startISO) {
   const start = new Date(`${startISO}T00:00:00`);
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    if (d.getDate() === 1) return true;
+    if (d.getDate() === 1) return d; // achou dia 1 dentro dessa semana
   }
-  return false;
+  return null;
 }
+
+function monthLabelFromDate(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${mm}/${yy}`;
+}
+
 
 
 function toISODate(d) {
@@ -667,6 +673,52 @@ function round2(n) {
   return Math.round((Number(n) + 1e-9) * 100) / 100;
 }
 
+function netLedger(ledger) {
+  const ids = new Set();
+
+  for (const payer of Object.keys(ledger)) {
+    ids.add(payer);
+    for (const payee of Object.keys(ledger[payer] || {})) ids.add(payee);
+  }
+
+  const arr = Array.from(ids);
+
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      const a = arr[i];
+      const b = arr[j];
+
+      const ab = Number(ledger[a]?.[b] || 0);
+      const ba = Number(ledger[b]?.[a] || 0);
+
+      if (!ab && !ba) continue;
+
+      if (ab > ba) {
+        ledger[a] = ledger[a] || {};
+        ledger[a][b] = round2(ab - ba);
+        if (ledger[b]) delete ledger[b][a];
+      } else if (ba > ab) {
+        ledger[b] = ledger[b] || {};
+        ledger[b][a] = round2(ba - ab);
+        if (ledger[a]) delete ledger[a][b];
+      } else {
+        if (ledger[a]) delete ledger[a][b];
+        if (ledger[b]) delete ledger[b][a];
+      }
+    }
+  }
+
+  for (const payer of Object.keys(ledger)) {
+    for (const payee of Object.keys(ledger[payer])) {
+      const v = round2(ledger[payer][payee]);
+      if (!v) delete ledger[payer][payee];
+      else ledger[payer][payee] = v;
+    }
+    if (Object.keys(ledger[payer]).length === 0) delete ledger[payer];
+  }
+}
+
+
 function displayName(pid) {
   const pm = peopleMap();
   if (String(pid).startsWith("guest#")) return pid.replace("guest#", "Convidado: ");
@@ -677,7 +729,7 @@ async function openStatementModal() {
   if (!CONFIG) await loadConfig();
 
   const weeks = buildWeeksFromMin(MIN_START_ISO);
-  const week = weeks.find((w) => w.startISO === selectedWeekStartISO) || weeks[0];
+  const week = weeks.find(w => w.startISO === selectedWeekStartISO) || weeks[0];
 
   if (!currentWeekCache.length) {
     await renderWeek(week.startISO);
@@ -686,74 +738,160 @@ async function openStatementModal() {
   const cm = carsMap();
   const pm = peopleMap();
 
-  const ledger = {};
-  const drivers = new Set();
-
-  function add(personId, driverId, amount) {
-    if (!ledger[personId]) ledger[personId] = {};
-    ledger[personId][driverId] = round2((ledger[personId][driverId] || 0) + amount);
-    drivers.add(driverId);
-  }
-
-  currentWeekCache.forEach(({ carId, trip }) => {
-    const car = cm.get(carId);
-    if (!car) return;
-
-    const driverId = car.driverPersonId;
-    const fareGo = Number(car.fareGo || 0);
-    const fareRet = Number(car.fareReturn || 0);
-
-    const went = Array.isArray(trip.went) ? trip.went : [];
-    const ret = Array.isArray(trip.returned) ? trip.returned : [];
-
-    // motorista entra no divisor, mas não gera PIX para ele mesmo
-    if (fareGo > 0 && went.length > 0) {
-      const share = fareGo / went.length;
-      went.forEach((pid) => {
-        if (pid !== driverId) add(pid, driverId, share);
-      });
-    }
-
-    if (fareRet > 0 && ret.length > 0) {
-      const share = fareRet / ret.length;
-      ret.forEach((pid) => {
-        if (pid !== driverId) add(pid, driverId, share);
-      });
-    }
-  });
-
   const driverLabel = (id) => pm.get(id)?.name || id;
 
-  const lines = [];
-  lines.push(`PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.`);
-  lines.push("");
+  // "primeira semana do mês" = semana que contém o dia 1
+  const firstDay = getFirstDayOfMonthInWeek(week.startISO);
+  let includeMonthlyParking = !!firstDay;
 
-  Object.keys(ledger)
-    .sort((a, b) => displayName(a).localeCompare(displayName(b), "pt-BR"))
-    .forEach((pid) => {
-      const byDriver = ledger[pid];
-      const parts = [];
-      Array.from(drivers).forEach((did) => {
-        const v = round2(byDriver[did] || 0);
-        if (v > 0) parts.push(`PIX de R$ ${v.toFixed(2)} para ${driverLabel(did)}`);
-      });
-      if (parts.length) lines.push(`${displayName(pid)}: ${parts.join(" | ")}`);
+  // mês-alvo do estacionamento:
+  // - automático: mês do "dia 1" encontrado na semana
+  // - manual: mês da data inicial da semana (pra não ficar indefinido)
+  const defaultMonthDate = firstDay || new Date(`${week.startISO}T00:00:00`);
+  const parkingMonthLabel = monthLabelFromDate(defaultMonthDate);
+
+  // "5 padrão": pega até 5 pessoas do CONFIG (não inclui guests, porque guest# não está no CONFIG)
+  const defaultPayers = (CONFIG.people || [])
+    .map(p => p.personId)
+    .filter(pid => !String(pid).startsWith("guest#"))
+    .slice(0, 5);
+
+  // Quem recebe o estacionamento (precisa existir pra virar PIX)
+  // padrão: primeiro motorista (se existir), senão primeira pessoa
+  const defaultPayee =
+    (CONFIG.cars?.[0]?.driverPersonId)
+    || defaultPayers[0]
+    || (CONFIG.people?.[0]?.personId)
+    || "";
+
+  let parkingPayeeId = defaultPayee;
+
+  function buildStatementText() {
+    const ledger = {};
+
+    function add(payerId, payeeId, amount) {
+      const v = round2(Number(amount) || 0);
+      if (v <= 0) return;
+      if (!payerId || !payeeId) return;
+      if (payerId === payeeId) return;
+
+      if (!ledger[payerId]) ledger[payerId] = {};
+      ledger[payerId][payeeId] = round2((ledger[payerId][payeeId] || 0) + v);
+    }
+
+    // ---- calcula corridas ----
+    currentWeekCache.forEach(({ carId, trip }) => {
+      const car = cm.get(carId);
+      if (!car) return;
+
+      const driverId = car.driverPersonId;
+
+      const fareGo = Number(car.fareGo || 0);
+      const fareRet = Number(car.fareReturn || 0);
+
+      const went = Array.isArray(trip.went) ? trip.went : [];
+      const ret = Array.isArray(trip.returned) ? trip.returned : [];
+
+      // GO
+      if (fareGo > 0 && went.length > 0) {
+        const share = fareGo / went.length; // inclui motorista no divisor
+        went.forEach(pid => {
+          if (pid !== driverId) add(pid, driverId, share);
+        });
+      }
+
+      // RETURN
+      if (fareRet > 0 && ret.length > 0) {
+        const share = fareRet / ret.length; // inclui motorista no divisor
+        ret.forEach(pid => {
+          if (pid !== driverId) add(pid, driverId, share);
+        });
+      }
     });
 
-  const text = lines.join("\n");
+    // ---- estacionamento mensal (uma vez no mês): 5 padrão x R$20 ----
+    if (includeMonthlyParking) {
+      defaultPayers.forEach(pid => add(pid, parkingPayeeId, PARKING_FEE_PER_PERSON));
+    }
+
+    // Compensa A<->B (líquido)
+    netLedger(ledger);
+
+    // ---- monta texto ----
+    const lines = [];
+    lines.push(`PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.`);
+    if (includeMonthlyParking) {
+      lines.push(`Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa (5 padrão).`);
+      lines.push(`Recebedor estacionamento: ${driverLabel(parkingPayeeId)}.`);
+    }
+    lines.push("");
+
+    Object.keys(ledger)
+      .sort((a, b) => displayName(a).localeCompare(displayName(b), "pt-BR"))
+      .forEach(payerId => {
+        const byPayee = ledger[payerId] || {};
+        const payees = Object.keys(byPayee)
+          .sort((a, b) => driverLabel(a).localeCompare(driverLabel(b), "pt-BR"));
+
+        const parts = payees.map(payeeId => {
+          const v = round2(byPayee[payeeId] || 0);
+          return `PIX de R$ ${v.toFixed(2)} para ${driverLabel(payeeId)}`;
+        });
+
+        if (parts.length) lines.push(`${displayName(payerId)}: ${parts.join(" | ")}`);
+      });
+
+    return lines.join("\n");
+  }
+
+  const payeeOptions = (CONFIG.people || [])
+    .map(p => `<option value="${escHtml(p.personId)}" ${p.personId === parkingPayeeId ? "selected" : ""}>${escHtml(p.name)}</option>`)
+    .join("");
+
+  let text = buildStatementText();
 
   openModal("Extrato WhatsApp", `
     <div class="formGrid">
-      <textarea class="input" rows="12" readonly>${text}</textarea>
+      <textarea id="stText" class="input" rows="12" readonly></textarea>
+
+      <label style="display:flex; gap:10px; align-items:center; font-weight:800;">
+        <input id="chkMonthlyParking" type="checkbox" ${includeMonthlyParking ? "checked" : ""}>
+        Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa
+      </label>
+
+      <div>
+        <div class="fieldLabel">Quem recebe o estacionamento</div>
+        <select id="selParkingPayee" class="input">${payeeOptions}</select>
+      </div>
+
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="btnCopyStatement" class="btn btnPrimary" type="button">Copiar</button>
         <button id="btnCloseStatement" class="btn" type="button">Fechar</button>
       </div>
+
       <div id="stStatus" class="smallStatus"></div>
     </div>
   `);
 
+  const ta = document.getElementById("stText");
+  if (ta) ta.value = text;
+
+  const chk = document.getElementById("chkMonthlyParking");
+  chk?.addEventListener("change", () => {
+    includeMonthlyParking = !!chk.checked;
+    text = buildStatementText();
+    if (ta) ta.value = text;
+  });
+
+  const sel = document.getElementById("selParkingPayee");
+  sel?.addEventListener("change", () => {
+    parkingPayeeId = sel.value;
+    text = buildStatementText();
+    if (ta) ta.value = text;
+  });
+
   document.getElementById("btnCloseStatement")?.addEventListener("click", closeModal);
+
   document.getElementById("btnCopyStatement")?.addEventListener("click", async () => {
     const st = document.getElementById("stStatus");
     try {
@@ -764,6 +902,7 @@ async function openStatementModal() {
     }
   });
 }
+
 
 /* =========================
    Init
