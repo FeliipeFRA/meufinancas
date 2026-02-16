@@ -844,9 +844,9 @@ async function openStatementModal() {
     lines.push("");
     lines.push("CHAVES PIX:");
     lines.push("FELIPE FERREIRA");
-    lines.push("16994182682 // Felipe Ferreira (PICPAY)");
+    lines.push("16994182682 | Felipe Ferreira (PICPAY)");
     lines.push("CRISTHIAN");
-    lines.push("16994548817 // Cristhian Cesar (BRADESCO)");
+    lines.push("16994548817 | Cristhian Cesar (BRADESCO)");
 
 
     return lines.join("\n");
