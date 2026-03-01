@@ -800,7 +800,7 @@ function netLedger(ledger) {
 
 function displayName(pid) {
   const pm = peopleMap();
-  if (String(pid).startsWith("guest#")) return pid.replace("guest#", "Convidado: ");
+  if (String(pid).startsWith("guest#")) return pid.replace("guest#", "");
   return pm.get(pid)?.name || pid;
 }
 
@@ -910,7 +910,7 @@ async function openStatementModal() {
           return `PIX de R$ ${v.toFixed(2)} para ${driverLabel(payeeId)}`;
         });
 
-        if (parts.length) lines.push(`${displayName(payerId)}: ${parts.join(" | ")}`);
+        if (parts.length) lines.push(`*${displayName(payerId)}*:\n${parts.join(" | ")}\n`);
       });
 
     lines.push("");
