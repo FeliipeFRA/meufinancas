@@ -532,8 +532,9 @@ async function openLaunchModal(preset = null) {
   const dates = weekDatesFromStartISO(week.startISO).map((x) => x.iso);
 
   const pm = peopleMap();
+  const todayISO = toISODate(new Date());
 
-  const presetDate = preset?.dateISO || dates[0];
+  const presetDate = preset?.dateISO || (dates.includes(todayISO) ? todayISO : dates[0]);
   const presetCar = preset?.carId || (CONFIG.cars?.[0]?.carId || "COBALT");
   const presetWent = new Set(preset?.trip?.went || (CONFIG.people || []).map((p) => p.personId));
   const presetRet = new Set(preset?.trip?.returned || (CONFIG.people || []).map((p) => p.personId));
@@ -726,18 +727,53 @@ async function openLaunchModal(preset = null) {
         setModalStatus("Marque pelo menos 1 pessoa em FOI ou VOLTOU.");
         return;
       }
+      const endpointBase = `/trip/${encodeURIComponent(carId)}/${encodeURIComponent(dateISO)}`;
 
-      const qs = overwrite ? "?overwrite=1" : "";
-      await apiRequest(`/trip/${encodeURIComponent(carId)}/${encodeURIComponent(dateISO)}${qs}`, {
-        method: "PUT",
-        body: { went, returned },
-      });
+      if (overwrite) {
+        // usuário já decidiu sobrescrever
+        await apiRequest(`${endpointBase}?overwrite=1`, {
+          method: "PUT",
+          body: { went, returned },
+        });
 
-      closeModal();
-      await renderWeek(selectedWeekStartISO);
+        closeModal();
+        await renderWeek(selectedWeekStartISO);
+        return;
+      }
+
+      // tenta salvar sem sobrescrever
+      try {
+        await apiRequest(endpointBase, {
+          method: "PUT",
+          body: { went, returned },
+        });
+
+        closeModal();
+        await renderWeek(selectedWeekStartISO);
+      } catch (e) {
+        if (String(e.message).includes("trip_already_exists")) {
+          const ok = window.confirm("Já possui um dia salvo nessa data. Tem certeza que deseja sobrescrever?");
+          if (!ok) {
+            setModalStatus("Cancelado. Altere a data/carro ou marque 'Sobrescrever'.");
+            return;
+          }
+
+          // confirmou: sobrescreve
+          await apiRequest(`${endpointBase}?overwrite=1`, {
+            method: "PUT",
+            body: { went, returned },
+          });
+
+          closeModal();
+          await renderWeek(selectedWeekStartISO);
+          return;
+        }
+
+        throw e;
+      }
     } catch (e) {
       if (String(e.message).includes("trip_already_exists")) {
-        setModalStatus("Já existe lançamento. Marque 'Sobrescrever' e salve novamente.");
+        setModalStatus("Já existe lançamento. Marque 'Sobrescrever' e salve novamente. ");
         return;
       }
       setModalStatus(`Erro: ${e.message}`);
@@ -931,14 +967,13 @@ async function openStatementModal() {
     <div class="formGrid">
       <textarea id="stText" class="input" rows="12" readonly></textarea>
 
-      ${
-        parkingEligible
-          ? `<label style="display:flex; gap:10px; align-items:center; font-weight:800;">
+      ${parkingEligible
+      ? `<label style="display:flex; gap:10px; align-items:center; font-weight:800;">
                <input id="chkMonthlyParking" type="checkbox" ${includeMonthlyParking ? "checked" : ""}>
                Incluir estacionamento mensal (${parkingMonthLabel}) - R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa
              </label>`
-          : ""
-      }
+      : ""
+    }
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="btnCopyStatement" class="btn btnPrimary" type="button">Copiar</button>
