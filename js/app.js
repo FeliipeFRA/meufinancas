@@ -927,8 +927,8 @@ async function openStatementModal() {
     lines.push(`*PAGAMENTO SEMANA ${brDate(week.startISO)} a ${brDate(week.endISO)}.*`);
 
     if (parkingEligible && includeMonthlyParking) {
-      lines.push(`Estacionamento ${parkingMonthLabel}: R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa (5 padrão).`);
-      lines.push(`Recebedor estacionamento: ${driverLabel(parkingPayeeId)}.`);
+      lines.push(`Nessa semana, está incluso o valor do estacionamento do mês ${parkingMonthLabel}, sendo R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa. (dos 5 padrão)`);
+      lines.push(`O valor já está embutido no extrato abaixo, recebedor: ${driverLabel(parkingPayeeId)}.`);
     }
 
     lines.push("");
