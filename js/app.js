@@ -412,29 +412,6 @@ async function renderWeek(startISO) {
       row.appendChild(colWent);
       row.appendChild(colRet);
 
-      const btnTrash = document.createElement("button");
-      btnTrash.type = "button";
-      btnTrash.className = "btn btnIcon";
-      btnTrash.innerHTML = `<i class="bi bi-trash3"></i>`;
-      btnTrash.title = "Remover lançamento";
-
-      btnTrash.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const ok = window.confirm(`Remover lançamento de ${car?.label || carId} em ${brDate(iso)}?`);
-        if (!ok) return;
-
-        try {
-          setStatus("Removendo...");
-          await deleteTrip(carId, iso);
-          await renderWeek(selectedWeekStartISO);
-          setStatus("");
-        } catch (err) {
-          setStatus(`Erro ao remover: ${err.message}`);
-        }
-      });
-
-      row.appendChild(btnTrash);
-
       row.onclick = () => {
         const wentHtml = (trip.went || []).map((pid) => makeAvatar(pid).outerHTML).join("");
         const retHtml = (trip.returned || []).map((pid) => makeAvatar(pid).outerHTML).join("");
