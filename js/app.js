@@ -21,6 +21,7 @@ const MIN_START_ISO = "2026-02-02";
 const PARKING_FEE_PER_PERSON = 20; // R$20 por pessoa (5 padrão) = R$100 mês
 const FIXED_PARKING_RECEIVER_NAME = "Felipe Ferreira";
 const UI_BASE_FONT_SIZE_PX = 18;
+const PARKING_AVULSO_TOTAL = 10; // R$10 por carro/dia (rateio entre motorista + pessoas)
 
 /* =========================
    Utils
@@ -289,6 +290,12 @@ async function loadTrip(carId, dateISO) {
   }
 }
 
+async function deleteTrip(carId, dateISO) {
+  await apiRequest(`/trip/${encodeURIComponent(carId)}/${encodeURIComponent(dateISO)}`, {
+    method: "DELETE",
+  });
+}
+
 /* =========================
    Render Semana
 ========================= */
@@ -405,6 +412,29 @@ async function renderWeek(startISO) {
       row.appendChild(colWent);
       row.appendChild(colRet);
 
+      const btnTrash = document.createElement("button");
+      btnTrash.type = "button";
+      btnTrash.className = "btn btnIcon";
+      btnTrash.innerHTML = `<i class="bi bi-trash3"></i>`;
+      btnTrash.title = "Remover lançamento";
+
+      btnTrash.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = window.confirm(`Remover lançamento de ${car?.label || carId} em ${brDate(iso)}?`);
+        if (!ok) return;
+
+        try {
+          setStatus("Removendo...");
+          await deleteTrip(carId, iso);
+          await renderWeek(selectedWeekStartISO);
+          setStatus("");
+        } catch (err) {
+          setStatus(`Erro ao remover: ${err.message}`);
+        }
+      });
+
+      row.appendChild(btnTrash);
+
       row.onclick = () => {
         const wentHtml = (trip.went || []).map((pid) => makeAvatar(pid).outerHTML).join("");
         const retHtml = (trip.returned || []).map((pid) => makeAvatar(pid).outerHTML).join("");
@@ -434,6 +464,9 @@ async function renderWeek(startISO) {
               <button class="btn" id="btnCloseDetails" type="button">
                 <i class="bi bi-x-circle"></i> Fechar
               </button>
+              <button class="btn" id="btnDeleteTrip" type="button">
+                <i class="bi bi-trash3"></i> Remover
+              </button>
             </div>
           `
         );
@@ -442,6 +475,19 @@ async function renderWeek(startISO) {
           openLaunchModal({ dateISO: iso, carId, trip, overwrite: true }).catch((e) =>
             setStatus(`Erro: ${e.message}`)
           );
+        });
+
+        document.getElementById("btnDeleteTrip")?.addEventListener("click", async () => {
+          const ok = window.confirm(`Remover lançamento de ${car?.label || carId} em ${brDate(iso)}?`);
+          if (!ok) return;
+
+          try {
+            await deleteTrip(carId, iso);
+            closeModal();
+            await renderWeek(selectedWeekStartISO);
+          } catch (err) {
+            setStatus(`Erro ao remover: ${err.message}`);
+          }
         });
 
         document.getElementById("btnCloseDetails")?.addEventListener("click", closeModal);
@@ -626,6 +672,11 @@ async function openLaunchModal(preset = null) {
         <input id="inOverwrite" type="checkbox" ${presetOverwrite ? "checked" : ""} />
         Sobrescrever se já existir
       </label>
+      
+      <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
+        <input id="inParkingAvulso" type="checkbox" ${preset?.trip?.parkingAvulso ? "checked" : ""} />
+        Estacionamento avulso (R$ 10,00)
+      </label>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
         <button id="btnSaveTrip" class="btn btnPrimary" type="button">
@@ -712,6 +763,7 @@ async function openLaunchModal(preset = null) {
       const dateISO = document.getElementById("inDate").value;
       const carId = document.getElementById("inCar").value;
       const overwrite = document.getElementById("inOverwrite").checked;
+      const parkingAvulso = document.getElementById("inParkingAvulso")?.checked ? true : false;
 
       const rows = Array.from(pickListEl.querySelectorAll(".pickRow"));
       const went = [];
@@ -733,7 +785,7 @@ async function openLaunchModal(preset = null) {
         // usuário já decidiu sobrescrever
         await apiRequest(`${endpointBase}?overwrite=1`, {
           method: "PUT",
-          body: { went, returned },
+          body: { went, returned, parkingAvulso },
         });
 
         closeModal();
@@ -745,7 +797,7 @@ async function openLaunchModal(preset = null) {
       try {
         await apiRequest(endpointBase, {
           method: "PUT",
-          body: { went, returned },
+          body: { went, returned, parkingAvulso },
         });
 
         closeModal();
@@ -761,7 +813,7 @@ async function openLaunchModal(preset = null) {
           // confirmou: sobrescreve
           await apiRequest(`${endpointBase}?overwrite=1`, {
             method: "PUT",
-            body: { went, returned },
+            body: { went, returned, parkingAvulso },
           });
 
           closeModal();
@@ -889,7 +941,9 @@ async function openStatementModal() {
     }
 
     // corridas
-    currentWeekCache.forEach(({ carId, trip }) => {
+    const avulsoNotes = [];
+
+    currentWeekCache.forEach(({ dateISO, carId, trip }) => {
       const car = cm.get(carId);
       if (!car) return;
 
@@ -913,6 +967,26 @@ async function openStatementModal() {
           if (pid !== driverId) add(pid, driverId, share);
         });
       }
+
+      // Estacionamento avulso do dia (R$10,00) rateado entre motorista + pessoas que usaram o carro no dia
+      if (trip?.parkingAvulso) {
+        const participants = new Set([...(trip.went || []), ...(trip.returned || [])].filter(Boolean));
+        participants.add(driverId); // garante motorista no divisor
+
+        const n = participants.size;
+        if (n > 0) {
+          const share = PARKING_AVULSO_TOTAL / n;
+
+          participants.forEach((pid) => {
+            if (pid !== driverId) add(pid, driverId, share);
+          });
+
+          avulsoNotes.push(
+            `Estacionamento avulso: ${driverLabel(driverId)} pagou R$ ${PARKING_AVULSO_TOTAL.toFixed(2)} em ${brDate(dateISO)}. ` +
+            `Rateio: R$ ${share.toFixed(2)} por pessoa (${n} no carro).`
+          );
+        }
+      }
     });
 
     // estacionamento mensal (apenas se elegível e marcado)
@@ -929,6 +1003,12 @@ async function openStatementModal() {
     if (parkingEligible && includeMonthlyParking) {
       lines.push(`Nessa semana, está incluso o valor do estacionamento do mês ${parkingMonthLabel}, sendo R$ ${PARKING_FEE_PER_PERSON.toFixed(2)} por pessoa. (dos 5 padrão)`);
       lines.push(`O valor já está embutido no extrato abaixo, recebedor: ${driverLabel(parkingPayeeId)}.`);
+    }
+
+    if (avulsoNotes.length) {
+      lines.push("*AVISOS:*");
+      avulsoNotes.forEach((l) => lines.push(l));
+      lines.push("");
     }
 
     lines.push("");
