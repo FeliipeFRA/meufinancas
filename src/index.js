@@ -8,6 +8,7 @@
  */
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const SPIN_START_DATE = "2026-03-21";
 
 // Ajuste seus origins aqui (GitHub Pages + localhost)
 const ALLOWED_ORIGINS = new Set([
@@ -63,6 +64,14 @@ async function loadConfig(env) {
 
 function normalizeCarId(s) {
   return String(s || "").toUpperCase();
+}
+
+function isKnownCarForDate(carId, date, cfg) {
+  if (carId === "ZAFIRA") return date < SPIN_START_DATE;
+  if (carId === "SPIN" && date < SPIN_START_DATE) return false;
+
+  const knownCars = new Set((cfg.cars || []).map(c => normalizeCarId(c.carId)));
+  return knownCars.has(carId);
 }
 
 export default {
@@ -131,8 +140,7 @@ export default {
         const cfg = await loadConfig(env);
         if (!cfg) return jsonResp(req, 500, { error: "config_not_found" });
 
-        const knownCars = new Set((cfg.cars || []).map(c => normalizeCarId(c.carId)));
-        if (!knownCars.has(carId)) return jsonResp(req, 400, { error: "invalid_car", carId });
+        if (!isKnownCarForDate(carId, date, cfg)) return jsonResp(req, 400, { error: "invalid_car", carId });
 
         const payload = await readJson(req);
         const went = Array.isArray(payload.went) ? payload.went.filter(x => typeof x === "string") : [];

@@ -9,11 +9,22 @@ let currentWeekCache = []; // [{dateISO, carId, trip}]
 const CAR_PHOTOS = {
   COBALT: "./assets/cars/cobalt.png",
   HRV: "./assets/cars/hrv.png",
+  SPIN: "./assets/cars/spin.png",
   ZAFIRA: "./assets/cars/zafira.png",
   CELTA: "./assets/cars/celta.png",
 };
 
 const MIN_START_ISO = "2026-02-02";
+const SPIN_START_ISO = "2026-03-21";
+const LEGACY_CARS = [
+  {
+    carId: "ZAFIRA",
+    label: "Zafira",
+    fareGo: 60,
+    fareReturn: 60,
+    driverPersonId: "cristhian",
+  },
+];
 
 /* =========================
    Consts / UI
@@ -152,9 +163,30 @@ function peopleMap() {
   return m;
 }
 
+function allCars() {
+  const cars = [...(CONFIG?.cars || [])];
+  const known = new Set(cars.map((c) => c.carId));
+
+  LEGACY_CARS.forEach((car) => {
+    if (!known.has(car.carId)) cars.push(car);
+  });
+
+  return cars;
+}
+
+function carActiveForDate(carId, dateISO) {
+  if (carId === "ZAFIRA") return dateISO < SPIN_START_ISO;
+  if (carId === "SPIN") return dateISO >= SPIN_START_ISO;
+  return true;
+}
+
+function carsForDate(dateISO) {
+  return allCars().filter((car) => carActiveForDate(car.carId, dateISO));
+}
+
 function carsMap() {
   const m = new Map();
-  (CONFIG?.cars || []).forEach((c) => m.set(c.carId, c));
+  allCars().forEach((c) => m.set(c.carId, c));
   return m;
 }
 
@@ -315,10 +347,10 @@ async function renderWeek(startISO) {
   setHeaderWeekLabel(week.startISO, week.endISO);
 
   const dates = weekDatesFromStartISO(week.startISO).map((x) => x.iso);
-  const cars = (CONFIG.cars || []).map((c) => c.carId);
 
   const tasks = [];
   for (const iso of dates) {
+    const cars = carsForDate(iso).map((c) => c.carId);
     for (const carId of cars) {
       tasks.push(loadTrip(carId, iso).then((trip) => ({ dateISO: iso, carId, trip })));
     }
@@ -558,12 +590,13 @@ async function openLaunchModal(preset = null) {
   const todayISO = toISODate(new Date());
 
   const presetDate = preset?.dateISO || (dates.includes(todayISO) ? todayISO : dates[0]);
-  const presetCar = preset?.carId || (CONFIG.cars?.[0]?.carId || "COBALT");
+  const activeCars = carsForDate(presetDate);
+  const presetCar = preset?.carId || (activeCars[0]?.carId || "COBALT");
   const presetWent = new Set(preset?.trip?.went || (CONFIG.people || []).map((p) => p.personId));
   const presetRet = new Set(preset?.trip?.returned || (CONFIG.people || []).map((p) => p.personId));
   const presetOverwrite = !!preset?.overwrite;
 
-  const cars = CONFIG.cars || [];
+  const cars = activeCars;
   const carCards = cars
     .map((c) => {
       const driverName = pm.get(c.driverPersonId)?.name || c.driverPersonId;
